@@ -18,7 +18,7 @@ session_UniProtAPI = requests.Session()
 session_UniProtAPI.mount("https://", HTTPAdapter(max_retries=retries))
 
 
-def submit_id_mapping_UniProtAPI(from_db, to_db, ids):
+def submit_id_mapping_uniprot_api(from_db, to_db, ids):
     '''
     FUNCITON:
     - This submits the post request to UniProt's API.
@@ -36,7 +36,7 @@ def submit_id_mapping_UniProtAPI(from_db, to_db, ids):
     return request.json()["jobId"]
 
 
-def get_next_link_UniProtAPI(headers):
+def get_next_link_uniprot_api(headers):
     re_next_link = re.compile(r'<(.+)>; rel="next"')
     if "Link" in headers:
         match = re_next_link.match(headers["Link"])
@@ -44,7 +44,7 @@ def get_next_link_UniProtAPI(headers):
             return match.group(1)
 
 
-def check_id_mapping_results_ready_UniProtAPI(job_id):
+def check_id_mapping_results_ready_uniprot_api(job_id):
     '''
     FUNCTION:
     - This checks if the submitted job is ready.
@@ -68,16 +68,16 @@ def check_id_mapping_results_ready_UniProtAPI(job_id):
             return bool(j["results"] or j["failedIds"])
 
 
-def get_batch_UniProtAPI(batch_response, file_format, compressed):
-    batch_url = get_next_link_UniProtAPI(batch_response.headers)
+def get_batch_uniprot_api(batch_response, file_format, compressed):
+    batch_url = get_next_link_uniprot_api(batch_response.headers)
     while batch_url:
         batch_response = session_UniProtAPI.get(batch_url)
         batch_response.raise_for_status()
-        yield decode_results_UniProtAPI(batch_response, file_format, compressed)
-        batch_url = get_next_link_UniProtAPI(batch_response.headers)
+        yield decode_results_uniprot_api(batch_response, file_format, compressed)
+        batch_url = get_next_link_uniprot_api(batch_response.headers)
 
 
-def combine_batches_UniProtAPI(all_results, batch_results, file_format):
+def combine_batches_uniprot_api(all_results, batch_results, file_format):
     if file_format == "json":
         for key in ("results", "failedIds"):
             if key in batch_results and batch_results[key]:
@@ -89,7 +89,7 @@ def combine_batches_UniProtAPI(all_results, batch_results, file_format):
     return all_results
 
 
-def get_id_mapping_results_link_UniProtAPI(job_id):
+def get_id_mapping_results_link_uniprot_api(job_id):
     '''
     FUNCTION:
     - This gets the link where the job results can
@@ -105,7 +105,7 @@ def get_id_mapping_results_link_UniProtAPI(job_id):
     return request.json()["redirectURL"]
 
 
-def decode_results_UniProtAPI(response, file_format, compressed):
+def decode_results_uniprot_api(response, file_format, compressed):
     if compressed:
         decompressed = zlib.decompress(response.content, 16 + zlib.MAX_WBITS)
         if file_format == "json":
@@ -130,22 +130,22 @@ def decode_results_UniProtAPI(response, file_format, compressed):
     return response.text
 
 
-def get_xml_namespace_UniProtAPI(element):
+def get_xml_namespace_uniprot_api(element):
     m = re.match(r"\{(.*)\}", element.tag)
     return m.groups()[0] if m else ""
 
 
-def merge_xml_results_UniProtAPI(xml_results):
+def merge_xml_results_uniprot_api(xml_results):
     merged_root = ElementTree.fromstring(xml_results[0])
     for result in xml_results[1:]:
         root = ElementTree.fromstring(result)
         for child in root.findall("{http://uniprot.org/uniprot}entry"):
             merged_root.insert(-1, child)
-    ElementTree.register_namespace("", get_xml_namespace_UniProtAPI(merged_root[0]))
+    ElementTree.register_namespace("", get_xml_namespace_uniprot_api(merged_root[0]))
     return ElementTree.tostring(merged_root, encoding="utf-8", xml_declaration=True)
 
 
-def print_progress_batches_UniProtAPI(batch_index, size, total):
+def print_progress_batches_uniprot_api(batch_index, size, total):
     n_fetched = min((batch_index + 1) * size, total)
     print(f"Fetched: {n_fetched} / {total}", end='\r')
 
@@ -174,18 +174,18 @@ def get_id_mapping_results_search_UniProtAPI(url):
     url = parsed.geturl()
     request = session_UniProtAPI.get(url)
     request.raise_for_status()
-    results = decode_results_UniProtAPI(request, file_format, compressed)
+    results = decode_results_uniprot_api(request, file_format, compressed)
     total = int(request.headers["x-total-results"])
-    print_progress_batches_UniProtAPI(0, size, total)
-    for i, batch in enumerate(get_batch_UniProtAPI(request, file_format, compressed), 1):
-        results = combine_batches_UniProtAPI(results, batch, file_format)
-        print_progress_batches_UniProtAPI(i, size, total)
+    print_progress_batches_uniprot_api(0, size, total)
+    for i, batch in enumerate(get_batch_uniprot_api(request, file_format, compressed), 1):
+        results = combine_batches_uniprot_api(results, batch, file_format)
+        print_progress_batches_uniprot_api(i, size, total)
     if file_format == "xml":
-        return merge_xml_results_UniProtAPI(results)
+        return merge_xml_results_uniprot_api(results)
     return results
 
 
-def get_id_mapping_results_stream_UniProtAPI(url):
+def get_id_mapping_results_stream_uniprot_api(url):
     if "/stream/" not in url:
         url = url.replace("/results/", "/stream/")
     request = session_UniProtAPI.get(url)
@@ -196,10 +196,10 @@ def get_id_mapping_results_stream_UniProtAPI(url):
     compressed = (
         query["compressed"][0].lower() == "true" if "compressed" in query else False
     )
-    return decode_results_UniProtAPI(request, file_format, compressed)
+    return decode_results_uniprot_api(request, file_format, compressed)
 
 
-def get_possible_fields_UniProtAPI():
+def get_possible_fields_uniprot_api():
     '''
     FUNCTION:
     - This prints the possible fields including the
@@ -229,7 +229,7 @@ def get_possible_fields_UniProtAPI():
 
 
 
-def get_to_uniprotid_from_genename_mapping_dict_UniProtAPI(results, your_taxa = [''], filter_by_reviewed = True):
+def get_to_uniprotid_from_genename_mapping_dict_uniprot_api(results, your_taxa = [''], filter_by_reviewed = True):
     '''
     FUNCTION:
     - Convert the raw API call's mapping results to a dictionary
@@ -281,7 +281,7 @@ def get_to_uniprotid_from_genename_mapping_dict_UniProtAPI(results, your_taxa = 
 
 
 # Source for STRING API code: Alexander Pelletier
-def get_filtered_string_interactors_STRINGAPI(string_ids, score_thresh):
+def get_filtered_string_interactors_string_api(string_ids, score_thresh):
     '''
     Get interactors for STRING IDs using the API, 
     only return those with combined_score >= score_thresh
@@ -317,7 +317,7 @@ def get_filtered_string_interactors_STRINGAPI(string_ids, score_thresh):
 
 
 
-def batch_filtered_queries_STRINGAPI(string_ids, batch_size = 100, score_thresh = 0.9):
+def batch_filtered_queries_string_api(string_ids, batch_size = 100, score_thresh = 0.9):
     '''
     API crashes if you put the whole list. batch the queries
     '''
@@ -327,7 +327,7 @@ def batch_filtered_queries_STRINGAPI(string_ids, batch_size = 100, score_thresh 
         i_end = min(i+batch_size, len(string_ids))
         ids = string_ids[i:i_end]
         # print(len(ids))
-        results = get_filtered_string_interactors_STRINGAPI(ids,score_thresh=score_thresh)
+        results = get_filtered_string_interactors_string_api(ids, score_thresh=score_thresh)
         batched_results += results
         if i % 1000 == 0:
             print(i,'/',len(string_ids), end='\r')
@@ -342,7 +342,7 @@ def batch_filtered_queries_STRINGAPI(string_ids, batch_size = 100, score_thresh 
         print("No results!!")
         return None
     
-def k_hop_interactors_STRINGAPI(string_ids, k, score_thresh, debug=False, return_counts=False):
+def k_hop_interactors_string_api(string_ids, k, score_thresh, debug=False, return_counts=False):
     '''
     Get interactors for STRING IDs using the API within k-hops, 
     only including interacting partners above score_threshold 
@@ -353,7 +353,7 @@ def k_hop_interactors_STRINGAPI(string_ids, k, score_thresh, debug=False, return
     counts = []
     for i in range(k):
         # get interactors for the new proteins
-        string_interactors_df = batch_filtered_queries_STRINGAPI(next_query_proteins, score_thresh=score_thresh)
+        string_interactors_df = batch_filtered_queries_string_api(next_query_proteins, score_thresh=score_thresh)
         if string_interactors_df is not None:
             # append df
             if return_df is not None:
@@ -376,5 +376,4 @@ def k_hop_interactors_STRINGAPI(string_ids, k, score_thresh, debug=False, return
         return return_df, counts    
     return return_df
 
-# k_hop_interactors_STRINGAPI(string_ids)  
 

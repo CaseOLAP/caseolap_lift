@@ -90,11 +90,11 @@ def get_interacting_partners(proteins, k=1, score_thresh=0.975,
                                                                              debug=debug, return_mappings=True)
 
     # Get interacting partners
-    interacting_partners_df, counts = k_hop_interactors_STRINGAPI(proteins_as_string,
-                                                                  k=k,
-                                                                  score_thresh=score_thresh,
-                                                                  debug=debug,
-                                                                  return_counts=True)
+    interacting_partners_df, counts = k_hop_interactors_string_api(proteins_as_string,
+                                                                   k=k,
+                                                                   score_thresh=score_thresh,
+                                                                   debug=debug,
+                                                                   return_counts=True)
     interacting_partners = set(interacting_partners_df['query_ensp']).union(
         set(interacting_partners_df['partner_ensp']))
 
@@ -137,19 +137,19 @@ def get_interacting_partners(proteins, k=1, score_thresh=0.975,
 
     return added_uniprot_ids
 
-
+#TODO move to prepare_kg_data.py or utils
 def convert_uniprot_to_string_ids(proteins, debug=False, return_mappings=False):
     protein_set = set(proteins)
 
     # Convert UniProt IDs to STRING IDs
-    job_id = submit_id_mapping_UniProtAPI(
+    job_id = submit_id_mapping_uniprot_api(
         from_db='UniProtKB_AC-ID',
         to_db='STRING',
         ids=protein_set)
 
     # Wait until result finished.
-    if check_id_mapping_results_ready_UniProtAPI(job_id):
-        link = get_id_mapping_results_link_UniProtAPI(job_id)
+    if check_id_mapping_results_ready_uniprot_api(job_id):
+        link = get_id_mapping_results_link_uniprot_api(job_id)
         results = get_id_mapping_results_search_UniProtAPI(link)
 
     # Parse results
@@ -170,19 +170,19 @@ def convert_uniprot_to_string_ids(proteins, debug=False, return_mappings=False):
         return added_proteins, stringISuniprot, uniprotISstring
     return added_proteins
 
-
+#TODO move to prepare_kg_data.py or utils
 def convert_string_to_uniprot_ids(proteins, debug=False, return_mappings=False):
     protein_set = set(proteins)
 
     # Convert UniProt IDs to STRING IDs
-    job_id = submit_id_mapping_UniProtAPI(
+    job_id = submit_id_mapping_uniprot_api(
         from_db='STRING',
         to_db='UniProtKB',
         ids=protein_set)
 
     # Wait until result finished.
-    if check_id_mapping_results_ready_UniProtAPI(job_id):
-        link = get_id_mapping_results_link_UniProtAPI(job_id)
+    if check_id_mapping_results_ready_uniprot_api(job_id):
+        link = get_id_mapping_results_link_uniprot_api(job_id)
         results = get_id_mapping_results_search_UniProtAPI(link)
 
     # Parse results
@@ -207,7 +207,7 @@ def convert_string_to_uniprot_ids(proteins, debug=False, return_mappings=False):
 def get_pathway_partners(proteins, count_thresh=sys.maxsize, proportion_thresh=0.25, debug=False,
                          output_folder="../output/kg/"):
     protein2pathway, pathway2protein = load_protein2pathway_data('../data/UniProt2Reactome.txt',
-                                                                 output_folder="../data/")
+                                                                 output_folder="../data/") #TODO move to prepare_kg_data.py or utils
 
     # Pick pathways that have a substantial amount of mitochondrial proteins
     # How do we define 'substantial'?
@@ -249,6 +249,7 @@ def get_pathway_partners(proteins, count_thresh=sys.maxsize, proportion_thresh=0
     return added_proteins
 
 
+#TODO make it accept multiple GO ID's
 def get_proteins_from_go(go_id, go_id_to_links, go2protein):
     # go through the hierarchy and get proteins
     go_queue = [go_id]
@@ -262,15 +263,6 @@ def get_proteins_from_go(go_id, go_id_to_links, go2protein):
 
     print("%d proteins extracted" % len(extracted_proteins))
     return extracted_proteins
-
-
-def output_kg_edges(core_proteins, added_proteins, output_folder='./output/kg'):
-    '''
-    core proteins are identified by go term
-    added protein is a dict{origin->proteins}, for origins as 'ppi','pathway','tfd'
-    '''
-    # make folder if does not exist
-
 
 def prepare_subcellular_compartment_proteins(parameters,
                                              output_folder="./data",
@@ -316,28 +308,13 @@ def prepare_subcellular_compartment_proteins(parameters,
         print("%d proteins from transcription factor dependence" % len(tfd_proteins))
 
     print("In total, %d proteins of interest assembled" % (len(proteins_of_interest)))
-    return proteins_of_interest
 
-# def get_transcription_factor_dependence_partners(my_protein_list):
-#     # load target_protein_id_2_tf_protein_id
-#     global target_protein_id_2_tf_protein_id
-#     global tf_protein_id_2_target_protein_id
-#
-#     # get tf dependence proteins
-#     proteins_of_interest = set()
-#
-#     # query from_list:
-#     for p, prots in target_protein_id_2_tf_protein_id.items():
-#         if p in my_protein_list:
-#             proteins_of_interest = proteins_of_interest.union(prots)
-#     # query to_list
-#     for p, prots in tf_protein_id_2_target_protein_id.items():
-#         if p in my_protein_list:
-#             proteins_of_interest = proteins_of_interest.union(prots)
-#
-#     added_proteins = proteins_of_interest.difference(my_protein_list)
-#     print("Added proteins: %d" % (len(added_proteins)))
-#     return added_proteins
+    if output_folder:
+        out_protein_list_file = os.path.join(output_folder,"proteins_of_interest.txt")
+        with open(out_protein_list_file,"w") as out_file:
+            out_file.write("\n".join(proteins_of_interest))
+            print("Written to file %s"%out_protein_list_file)
+    return proteins_of_interest
 
 def get_transcription_factor_dependence_partners(proteins,data_folder = '../data/GRNdb'):
     #######
@@ -467,6 +444,7 @@ def get_transcription_factor_dependence_partners(proteins,data_folder = '../data
     target_protein_id_2_tf_protein_id = switch_dictset_to_dictlist(target_protein_id_2_tf_protein_id)
     tf_protein_id_2_target_protein_id = switch_dictset_to_dictlist(tf_protein_id_2_target_protein_id)
 
+    # TODO move to prepare_kg_data.py or utils
     json.dump(tf_protein_id_2_target_gene_id, open('../data/tf_protein_id_2_target_gene_id.json', 'w'))
     json.dump(target_protein_id_2_tf_protein_id, open('../data/target_protein_id_2_tf_protein_id.json', 'w'))
     json.dump(tf_protein_id_2_target_protein_id, open('../data/tf_protein_id_2_target_protein_id.json', 'w'))
@@ -542,6 +520,7 @@ parameters = {'go-term': 'GO:0005739',
 #              'pw_count_thresh':sys.maxsize,
 #              'pw_proportion_thresh':0.50,
 #              'include_transcription_factor_dependence':False}
+# TODO make below into a function, accepting parameters object
 print(os.getcwd())
 output_folder = "../output"
 if not os.path.exists(output_folder):
