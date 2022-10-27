@@ -318,7 +318,7 @@ def prepare_subcellular_compartment_proteins(parameters,
 
 def get_transcription_factor_dependence_partners(proteins,data_folder = '../data/GRNdb'):
     #######
-    # TFD #
+    # Transcription_Factor_Dependence #
     #######
     global tf_gene_name_2_target_gene_name
 
