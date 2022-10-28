@@ -298,7 +298,15 @@ def download_data(resource_to_data_file_bool, data_folder):
                     'goa_human.gaf': "http://geneontology.org/gene-associations/goa_human.gaf.gz",
                     'UniProt2Reactome.txt': "https://reactome.org/download/current/UniProt2Reactome.txt",
                     'ReactomePathwaysRelation.txt': 'https://reactome.org/download/current/ReactomePathwaysRelation.txt',
+                    'desc2022.xml':'https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xmlmesh/desc2022.xml',
                     'mtrees2021.bin':"https://nlmpubs.nlm.nih.gov/projects/mesh/2021/meshtrees/mtrees2021.bin",
+                    'GRNdb':['http://www.grndb.com/download/txt?condition=Heart_GTEx',
+			        'http://www.grndb.com/download/txt?condition=Adult-Heart',
+			        'http://www.grndb.com/download/txt?condition=Fetal-Heart',
+			        'http://www.grndb.com/download/txt?condition=whole_NeonatalHeart',
+			        'http://www.grndb.com/download/txt?condition=cardiac_fibroblasts',
+			        'http://www.grndb.com/download/txt?condition=Blood_Vessel_GTEx'],
+                    'UP000005640_9606.fasta':'https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/Eukaryota/UP000005640/UP000005640_9606.fasta.gz'
                     }
 
     #TODO all_entrez2uniprot.json not downloaded TODO TODO
@@ -308,10 +316,16 @@ def download_data(resource_to_data_file_bool, data_folder):
             if not exists:
                 resource_folder = os.path.join(data_folder,resource)
                 data_file_path = os.path.join(resource_folder,data_file)
-
-                # download file
+                
                 print("Downloading %s"%(data_file_path))
-                if data_file in file_to_link:
+                # GRNdb handled separately, a list of files
+                if data_file == 'GRNdb':
+                    if not os.path.exists(data_file_path):
+                        os.makedirs(data_file_path)
+                    for download_link in file_to_link[data_file]:
+                        local_file_name = download_file(download_link,data_file_path)
+                # download file
+                elif data_file in file_to_link:
                     download_link = file_to_link[data_file]
                     local_file_name = download_file(download_link, resource_folder)
 
@@ -384,7 +398,7 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
     required_files = {'MeSH': ['desc2022.xml', 'mtrees2021.bin'], #TODO MeSH dates should be generalized
                       'GO': ['go-basic.obo', 'goa_human.gaf'],
                       'Reactome': ['UniProt2Reactome.txt', 'ReactomePathwaysRelation.txt'],
-                      'Transcription_Factor_Dependence': ['GRNdb','all_entrez2uniprot.json']
+                      'Transcription_Factor_Dependence': ['GRNdb','UP000005640_9606.fasta','all_entrez2uniprot.json']
                       }
 
     processed_files = {'MeSH': ['meshtree2meshname.json', 'edges_meshtree-IS-meshid_disease.csv',
@@ -441,4 +455,4 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
 
 data_folder = "../data"
 mapping_folder = "../parsed_mappings/"
-prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)
+#prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)

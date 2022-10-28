@@ -6,7 +6,7 @@ sys.path.append('..')
 # importing
 from utils.biomed_apis import *
 from utils.other_functions import *
-
+from prepare_knowledge_base_data import map_protein2go_ids, load_protein2pathway_data  #TODO
 import pandas as pd
 import numpy as np
 import os
@@ -46,7 +46,7 @@ def load_mappings(output_folder):
     # !rm 'data/goa_human.gaf'
     # !wget -N -P data/ http://geneontology.org/gene-associations/goa_human.gaf.gz
     # !gunzip 'data/goa_human.gaf.gz'
-    protein2go, go2protein = map_protein2go_ids(output_folder=data_folder)
+    protein2go, go2protein = map_protein2go_ids(goa_file = '../data/GO/goa_human.gaf',output_folder=data_folder)
 
     '''GO to GO'''
     # !wget -N -P data/ http://purl.obolibrary.org/obo/go/go-basic.obo
@@ -80,7 +80,7 @@ def load_mappings(output_folder):
 
 
 def get_interacting_partners(proteins, k=1, score_thresh=0.975,
-                             output_folder="./output/kg", debug=False):
+                             output_folder="../output/kg", debug=False):
     '''
     Identifies the interacting partners of the input protein list
     '''
@@ -290,6 +290,7 @@ def prepare_subcellular_compartment_proteins(parameters,
         ppi_proteins = get_interacting_partners(organelle_proteins,
                                                 k=ppi_k,
                                                 score_thresh=ppi_score_thresh,
+                                                output_folder=output_folder,
                                                 debug=debug)
         print(type(proteins_of_interest))
         print(type(ppi_proteins))
@@ -314,14 +315,28 @@ def prepare_subcellular_compartment_proteins(parameters,
         with open(out_protein_list_file,"w") as out_file:
             out_file.write("\n".join(proteins_of_interest))
             print("Written to file %s"%out_protein_list_file)
+        out_organelle_list_file = os.path.join(output_folder,"core_proteins.txt")
+        with open(out_organelle_list_file,"w") as out_file:
+            out_file.write("\n".join(organelle_proteins))
+            print("Written to file %s"%out_organelle_list_file)
     return proteins_of_interest
 
-def get_transcription_factor_dependence_partners(proteins,data_folder = '../data/GRNdb'):
+def get_transcription_factor_dependence_partners(proteins,data_folder = '../data/GRNdb', tfd_mapping_folder='../parsed_mappings/Transcription_Factor_Dependence/'):
     #######
     # Transcription_Factor_Dependence #
     #######
     global tf_gene_name_2_target_gene_name
 
+    # check required mapping files
+    ent_2_uniprot_file = os.path.join(tfd_mapping_folder,"all_entrez2uniprot.json")
+    uniprot_2_entrez_file = os.path.join(tfd_mapping_folder,"all_uniprot2entrez.json")
+    protein_id2names_file = os.path.join(tfd_mapping_folder,"id2synonyms_not_case_varied.json")
+    gene_name_2_protein_id_file = os.path.join(tfd_mapping_folder,"gene_name_2_protein_id.json")
+    for f in [ent_2_uniprot_file,uniprot_2_entrez_file,protein_id2names_file,gene_name_2_protein_id_file]:
+        if not os.path.exists(f):
+            print("Required %s file does not exist! Exit"%f)
+            sys.exit(1)
+    
     tf_gene_name_2_target_gene_name = dict()  # TF gene name to target gene name
     gene_names = set()  # Gene Names (Tfs and targets)
     tf_gene_names = set()  # Transcription Factor gene names
@@ -353,21 +368,20 @@ def get_transcription_factor_dependence_partners(proteins,data_folder = '../data
     # Change the values from set into a list
     tf_gene_name_2_target_gene_name = switch_dictset_to_dictlist(tf_gene_name_2_target_gene_name)
 
-    print(len(tf_gene_name_2_target_gene_name))
-
+    gene_name_2_protein_id = json.load(open(gene_name_2_protein_id_file,'r'))
     # TODO better API for mapping gene to protein
 
     '''Dictionary (all known mappings)'''
     protein_ids_2_gene_ids = json.load(
-        open('../data/all_uniprot2entrez.json', 'r'))
+        open(uniprot_2_entrez_file, 'r'))
     gene_ids_2_protein_ids = json.load(
-        open('../data/all_entrez2uniprot.json', 'r'))
+        open(ent_2_uniprot_file, 'r'))
 
     '''Dictionary'''
     gene_name_2_gene_id = dict()
 
     # Gene Name
-    for gene_name, protein_ids in gene_ids_2_protein_ids.items():
+    for gene_name, protein_ids in gene_name_2_protein_id.items():
 
         # Protein IDs
         for protein_id in protein_ids:
@@ -389,8 +403,6 @@ def get_transcription_factor_dependence_partners(proteins,data_folder = '../data
         else:
             one_gene_id_per_gene_name.add(k)
 
-    print(len(multiple_gene_ids_per_gene_name), 'gene names with multiple gene IDs (possibly bad)')
-    print(len(one_gene_id_per_gene_name), 'gene names with one gene ID (good)')
 
     '''Remove unclear mappings'''
     for gene_name, gene_ids in gene_ids_2_protein_ids.copy().items():
@@ -409,27 +421,32 @@ def get_transcription_factor_dependence_partners(proteins,data_folder = '../data
     tf_protein_id_2_target_gene_id = dict()
     tf_protein_id_2_target_protein_id = dict()
     target_protein_id_2_tf_protein_id = dict()
-
     for tf_gene_name, target_gene_names in tf_gene_name_2_target_gene_name.items():
-
+    
         # TF Gene Name -is- TF Protein ID
         try:
-            tf_protein_ids = gene_ids_2_protein_ids[tf_gene_name]
+            tf_protein_ids = gene_name_2_protein_id[tf_gene_name]
             tf_protein_ids = list(tf_protein_ids)
+            #print(len(tf_protein_ids))
         except:
+            #print("%s gene not found!"%(tf_gene_name))
             continue
-
         # Target Gene Names -is- Target Gene ID
+        #print([(k,v) for k,v in gene_name_2_gene_id.items()][:10])
+        #print(target_gene_names[:10])
         for target_gene_name in target_gene_names:
             try:
+                #print(target_gene_name in gene_name_2_gene_id)
                 target_gene_id = gene_name_2_gene_id[target_gene_name]
+ #               print(target_gene_id)
                 target_gene_id = list(target_gene_id)[0]
                 for tf_protein_id in tf_protein_ids:
                     tf_protein_id_2_target_gene_id.setdefault(tf_protein_id, set()).add(target_gene_id)
+  #              print(len(tf_protein_ids))
             except:
-                continue
-
-                # Protein ID's Gene -is targeted by-> TF Gene
+                continue    
+            
+            # Protein ID's Gene -is targeted by-> TF Gene 
             try:
                 target_gene_protein_ids = gene_ids_2_protein_ids[target_gene_id]
                 for target_gene_protein_id in target_gene_protein_ids:
@@ -438,6 +455,7 @@ def get_transcription_factor_dependence_partners(proteins,data_folder = '../data
                         target_protein_id_2_tf_protein_id.setdefault(target_gene_protein_id, set()).add(tf_protein_id)
             except:
                 continue
+
 
     ''' Output the Protein-Gene relationships'''
     tf_protein_id_2_target_gene_id = switch_dictset_to_dictlist(tf_protein_id_2_target_gene_id)
@@ -448,79 +466,30 @@ def get_transcription_factor_dependence_partners(proteins,data_folder = '../data
     json.dump(tf_protein_id_2_target_gene_id, open('../data/tf_protein_id_2_target_gene_id.json', 'w'))
     json.dump(target_protein_id_2_tf_protein_id, open('../data/target_protein_id_2_tf_protein_id.json', 'w'))
     json.dump(tf_protein_id_2_target_protein_id, open('../data/tf_protein_id_2_target_protein_id.json', 'w'))
-
-    organelle_tf2target, organelle_target2tf = dict(), dict()
-
-    # TODO where do we get this variable from?
-    # protein_id2names = json.load(open('data/id2syns_not_case_varied.json'))
-    print(len(proteins))
-    print(tf_protein_id_2_target_protein_id)
-    for protein in proteins:
-        # organelle Proteins' Targets
-        try:
-            target_proteins = tf_protein_id_2_target_protein_id[protein]
-            for target_protein in target_proteins:
-                organelle_tf2target.setdefault(protein, set()).add(target_protein)
-
-        except:
-            pass
-
-        # organellechondrial Proteins' Transcription Factors
-        try:
-            their_tfs = target_protein_id_2_tf_protein_id[protein]
-            for tf in their_tfs:
-                organelle_target2tf.setdefault(protein, set()).add(tf)
-        except:
-            pass
-    print(len(organelle_tf2target))
-    print(len(organelle_target2tf))
-    all_tfs = list()
-    for organelle_prot, tfs in organelle_target2tf.items():
-        all_tfs += tfs
-    all_tfs = list(set(all_tfs))
-
-    non_organelle_prot_are_tfs = set()
-    for protein in all_tfs:
-        if protein not in proteins:
-            non_organelle_prot_are_tfs.add(protein)
-    print(len(all_tfs), 'TFs target organelle\'s proteins\' genes', '(' + \
-          str(len(non_organelle_prot_are_tfs)), 'non-organelle\'s protein TFs)')
-
-    all_targets = list()
-    for organelle_prot, targets in organelle_tf2target.items():
-        all_targets += targets
-    all_targets = list(set(all_targets))
-
-    non_organelle_prot_are_targs = set()
-    for protein in all_targets:
-        if protein not in proteins:
-            non_organelle_prot_are_targs.add(protein)
-
-    print(len(organelle_tf2target.keys()), 'organelle\'s proteins are TFs')
-    print(len(all_targets), 'proteins\' genes are targeted by organelle\'s proteins', '(' + \
-          str(len(non_organelle_prot_are_targs)), 'non-organelle\'s protein targets)')
-
-    # added_proteins = proteins_of_interest.difference(my_protein_list)
-    # #     print("Added proteins: %d" % (len(added_proteins)))
-    # #     return added_proteins
-    return set()
+    # get tf dependence proteins
+    proteins_of_interest = set()
+    
+    # query from_list:
+    for p, prots in target_protein_id_2_tf_protein_id.items():
+        if p in proteins:
+            proteins_of_interest = proteins_of_interest.union(prots)
+    # query to_list
+    for p, prots in tf_protein_id_2_target_protein_id.items():
+        if p in proteins:
+            proteins_of_interest = proteins_of_interest.union(prots)
+    
+    added_proteins = proteins_of_interest.difference(proteins)
+    print("Added proteins: %d"%(len(added_proteins)))
+    return added_proteins
 
 parameters = {'go-term': 'GO:0005739',
-              'include_ppi': False,
+              'include_ppi': True,
               'ppi_k': 1, 'ppi_score_thresh': 0.99,
               'include_pathways': True,
               'pw_count_thresh': 4,
               'pw_proportion_thresh': 0.50,
               'include_transcription_factor_dependence': True}
 
-# parameters = {'go-term':'GO:0005739',
-#              'include_ppi':True,
-#              'ppi_k':1, 'ppi_score_thresh': 0.99,
-#              'include_pathways':True,
-#              'pw_count_thresh':sys.maxsize,
-#              'pw_proportion_thresh':0.50,
-#              'include_transcription_factor_dependence':False}
-# TODO make below into a function, accepting parameters object
 print(os.getcwd())
 output_folder = "../output"
 if not os.path.exists(output_folder):
