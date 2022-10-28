@@ -2,35 +2,6 @@ import os
 import json
 from .biomedkg_utils import switch_dictset_to_dictlist, switch_dictlist_to_dictset
 
-def load_protein2pathway_data(uniprot2reactome_file_path, output_folder="./data"):
-        
-    protein2pathway, pathway2protein = dict(), dict()
-
-    for line in open(uniprot2reactome_file_path):
-        line = line.strip().split('\t')
-
-        # Protein -involved in-> Pathway
-        try:  
-            species, protein, pathway = line[5].strip(), line[0], line[1]
-
-            if species.lower() == 'homo sapiens':
-                protein2pathway.setdefault(protein, list()).append(pathway)
-                pathway2protein.setdefault(pathway, list()).append(protein)
-        except: pass
-        
-     
-    # Export
-    protein2pathway = switch_dictlist_to_dictset(protein2pathway)
-    protein2pathway = switch_dictset_to_dictlist(protein2pathway)
-    
-    pathway2protein = switch_dictlist_to_dictset(pathway2protein)
-    pathway2protein = switch_dictset_to_dictlist(pathway2protein)
-
-    json.dump(protein2pathway, open(os.path.join(output_folder,'protein2pathway'),'w'))
-    json.dump(pathway2protein, open(os.path.join(output_folder,'pathway2protein'),'w'))
-    
-    return protein2pathway, pathway2protein
-
 
 def load_protein2pathway_data_PE(uniprot2reactome_file_path, output_folder="./data"):
         
@@ -93,31 +64,6 @@ def map_top_proteins2go(protein_DIS, protein2go, go_tree_of_interest, go_id2term
     return protein2go_DIS, go2protein_DIS, go_ids_DIS, go_terms_DIS
 
 
-
-
-def map_protein2go_ids(output_folder="./data"):
-    relations, go_terms, total = dict(), set(), 0
-    protein2go = dict()
-    go2protein = dict()
-
-    for i, line in enumerate(open(os.path.join(output_folder,'goa_human.gaf'))):
-        if i > 40:
-            line = line.split('\t')
-            protein = line[1]
-            relation = line[3]
-            go_term = line[4]
-
-            relations[relation] = relations.get(relation,0) + 1
-            go_terms.add(go_term)
-            total += 1
-
-            protein2go.setdefault(protein,list()).append(go_term)
-            go2protein.setdefault(go_term,list()).append(protein)
-
-    json.dump(protein2go, open(os.path.join(output_folder,'protein2go.json'),'w'))
-    json.dump(go2protein, open(os.path.join(output_folder,'go2protein.json'),'w'))
-    
-    return protein2go, go2protein
 
 
 

@@ -10,7 +10,7 @@ sys.path.append('..')
 from utils.biomedkg_utils import *
 
 
-def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml"):
+def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml", output_folder="../parsed_mappings/MeSH/"):
     '''
     This function parses the mesh tree file and parses three major files:
     1) ../data/edges_meshtree_to_meshtree.csv the hierarchical structure of mesh tree
@@ -97,7 +97,7 @@ def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml"):
         tree2name[tree] = name[0]
 
     print(tree2name)
-    json.dump(tree2name, open('../data/meshtree2meshname.json', 'w'))
+    json.dump(tree2name, open(os.path.join(output_folder,'meshtree2meshname.json'), 'w'))
 
     tree_nums = list({k: v for k, v in tree2name.items() if k.startswith('C14')})
     total_trees = len(tree_nums)
@@ -115,7 +115,7 @@ def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml"):
         print(index, '/', total_trees, end='\r')
 
     # MeSH Tree Number -[is]- MeSH ID
-    output_edgefile_onerel_noweight(outpath='../data/edges_meshtree-IS-meshid_disease.csv',
+    output_edgefile_onerel_noweight(outpath=os.path.join(output_folder,'edges_meshtree-IS-meshid_disease.csv'),
                                     columns=['Disease (MeSH Tree)', 'Disease (MeSH)', 'Relationship'],
                                     dictionary=tree2id,
                                     rel='-is-',
@@ -123,10 +123,10 @@ def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml"):
                                     prefix_col2='MeSH_Disease:',
                                     edges_folder=False)
 
-    df = pd.read_csv('../data/edges_meshtree-IS-meshid_disease.csv')
+    # df = pd.read_csv('../data/edges_meshtree-IS-meshid_disease.csv')
     #
     # MeSH Term -[is]- MeSH ID
-    with open('../data/meshterm-IS-meshid.json', 'w') as fout:
+    with open(os.path.join(output_folder,'meshterm-IS-meshid.json'), 'w') as fout:
         json.dump(name2id, fout)
 
         # mesh_name2id = json.load(open('../data/meshterm-IS-meshid.json')) #TODO bug for some reason
@@ -147,7 +147,7 @@ def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml"):
             tree2tree[tree_num] = [parent]
 
     # MeSH Tree Number -[subclass of]-> MeSH Tree Number
-    output_edgefile_onerel_noweight(outpath='../data/edges_meshtree_to_meshtree.csv',
+    output_edgefile_onerel_noweight(outpath=os.path.join(output_folder,'edges_meshtree_to_meshtree.csv'),
                                     columns=['Disease (MeSH Tree)', 'Disease (MeSH Tree)', 'Relationship'],
                                     dictionary=tree2tree,
                                     rel='-subclass_of->',
@@ -155,7 +155,7 @@ def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml"):
                                     prefix_col2='MeSH_Tree_Disease:',
                                     edges_folder=False)
 
-    df = pd.read_csv('../data/edges_meshtree_to_meshtree.csv')
+    # df = pd.read_csv('../data/edges_meshtree_to_meshtree.csv')
 
 # TODO remove all hard-coded file-paths
 
@@ -185,67 +185,31 @@ def filter_REACTOME_HUMAN(read_file, write_file):
                     f2.write(line)
 
 
-# def downloadef setup() -> None:
-#     UNIPROT2REACTOME = "https://reactome.org/download/current/UniProt2Reactome.txt"
-#     GOA_HUMAN = "http://geneontology.org/gene-associations/goa_human.gaf.gz"
-#     GO_BASIC = "http://purl.obolibrary.org/obo/go/go-basic.obo"
-#     REACTOMEPATHWAYSRELATION = "https://reactome.org/download/current/ReactomePathwaysRelation.txt"
-#     MESHTREES = "https://nlmpubs.nlm.nih.gov/projects/mesh/2021/meshtrees/mtrees2021.bin"
-#
-#     # check directory
-#     if not os.path.exists("data"):
-#         os.mkdir("data")
-#
-#     # download files
-#     if not os.path.exists("data/go-basic.obo"):
-#         download_file(GO_BASIC)
-#
-#     if not (not os.path.exists("data/goa_human.gaf.gz")) or (not os.path.exists("data/goa_human.gaf")):
-#         download_file(GOA_HUMAN)
-#
-#     if not os.path.exists("data/mtrees2021.bin"):
-#         download_file(MESHTREES)
-#
-#     if not os.path.exists("data/ReactomePathwaysRelation.txt"):
-#         download_file(REACTOMEPATHWAYSRELATION)
-#
-#     if not os.path.exists("data/UniProt2Reactome.txt"):
-#         download_file(UNIPROT2REACTOME)
-#
-#     # unzip goa_human
-#     if not os.path.exists("data/goa_human.gaf"):
-#         gunzip("data/goa_human.gaf.gz", "data/goa_human.gaf")
-#         os.remove("data/goa_human.gaf.gz")
-#
-#     # create new file for human reactome pathways
-#     # if not os.path.exists("data/HumanReactomePathwaysRelation.txt"):
-#     filter_REACTOME_HUMAN("data/ReactomePathwaysRelation.txt", "data/HumanReactomePathwaysRelation.txt")
-
-
-def check_input_files(required_files, data_folder, mapping_folder, debug=False):
+def check_required_files(required_files, directory, debug=False):
     '''
     This function checks to see if all prerequisite input files have been downloaded
     :param data_folder:
     :return:
     '''
 
-    # make data folder if doesn't exist
-    if not os.path.exists(data_folder):
-        os.makedirs(data_folder)
-
-    # make parsed mapping folder if doesn't exist
-    if not os.path.exists(mapping_folder):
-        os.makedirs(mapping_folder)
+    # make data folders if doesn't exist
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    for resource in required_files.keys():
+        resource_folder = os.path.join(directory, resource)
+        if not os.path.exists(resource_folder):
+            os.makedirs(resource_folder)
 
     resource_to_data_file_bool = {}
     resources_ready_list = []
     resources_not_ready_list = []
+    ready = True # ready if all resources pass check
     for resource, data_files in required_files.items():
 
         # search if all data files exist for a resource
         exists_list = []
         for data_file in data_files:
-            resource_folder = os.path.join(data_folder, resource)
+            resource_folder = os.path.join(directory, resource)
             data_file_path = os.path.join(resource_folder, data_file)
             exists = os.path.exists(data_file_path)
             exists_list += [exists]
@@ -256,6 +220,7 @@ def check_input_files(required_files, data_folder, mapping_folder, debug=False):
             resources_ready_list += [resource]
         else:
             resources_not_ready_list += [resource]
+        ready = ready and resource_ready
 
         if debug:
             print("*** %s ready: %s ***" %(resource, str(resource_ready)))
@@ -264,7 +229,61 @@ def check_input_files(required_files, data_folder, mapping_folder, debug=False):
 
         resource_to_data_file_bool[resource] = {data_file:exists for data_file, exists in zip(data_files,exists_list)}
 
-    return resource_to_data_file_bool
+    return resource_to_data_file_bool, ready
+
+
+def map_protein2go_ids(goa_file = './data/GO/goa_human.gaf',output_folder="./parsed_mappings/GO"):
+    relations, go_terms, total = dict(), set(), 0
+    protein2go = dict()
+    go2protein = dict()
+
+    for i, line in enumerate(open(goa_file)):
+        if i > 40:
+            line = line.split('\t')
+            protein = line[1]
+            relation = line[3]
+            go_term = line[4]
+
+            relations[relation] = relations.get(relation, 0) + 1
+            go_terms.add(go_term)
+            total += 1
+
+            protein2go.setdefault(protein, list()).append(go_term)
+            go2protein.setdefault(go_term, list()).append(protein)
+
+    json.dump(protein2go, open(os.path.join(output_folder, 'protein2go.json'), 'w'))
+    json.dump(go2protein, open(os.path.join(output_folder, 'go2protein.json'), 'w'))
+
+    return protein2go, go2protein
+
+
+def load_protein2pathway_data(uniprot2reactome_file_path='./data/Reactome/UniProt2Reactome.txt', output_folder="./parsed_mappings/Reactome"):
+    protein2pathway, pathway2protein = dict(), dict()
+
+    for line in open(uniprot2reactome_file_path):
+        line = line.strip().split('\t')
+
+        # Protein -involved in-> Pathway
+        try:
+            species, protein, pathway = line[5].strip(), line[0], line[1]
+
+            if species.lower() == 'homo sapiens':
+                protein2pathway.setdefault(protein, list()).append(pathway)
+                pathway2protein.setdefault(pathway, list()).append(protein)
+        except:
+            pass
+
+    # Export
+    protein2pathway = switch_dictlist_to_dictset(protein2pathway)
+    protein2pathway = switch_dictset_to_dictlist(protein2pathway)
+
+    pathway2protein = switch_dictlist_to_dictset(pathway2protein)
+    pathway2protein = switch_dictset_to_dictlist(pathway2protein)
+
+    json.dump(protein2pathway, open(os.path.join(output_folder, 'protein2pathway.json'), 'w'))
+    json.dump(pathway2protein, open(os.path.join(output_folder, 'pathway2protein.json'), 'w'))
+
+    return protein2pathway, pathway2protein
 
 
 def download_data(resource_to_data_file_bool, data_folder):
@@ -281,6 +300,8 @@ def download_data(resource_to_data_file_bool, data_folder):
                     'ReactomePathwaysRelation.txt': 'https://reactome.org/download/current/ReactomePathwaysRelation.txt',
                     'mtrees2021.bin':"https://nlmpubs.nlm.nih.gov/projects/mesh/2021/meshtrees/mtrees2021.bin",
                     }
+
+    #TODO all_entrez2uniprot.json not downloaded TODO TODO
 
     for resource, data_file_bool_dict in resource_to_data_file_bool.items():
         for data_file, exists in data_file_bool_dict.items():
@@ -305,6 +326,50 @@ def download_data(resource_to_data_file_bool, data_folder):
     return resource_to_data_file_bool
 
 
+def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_folder, debug=False):
+
+    # find out which resources are missing mappings
+    missing_mappings = {}
+    for resource, mapping_file_bool_dict in resource_to_processed_file_bool.items():
+        missing_files = not(all([b for b in mapping_file_bool_dict.values()]))
+        missing_mappings[resource] = missing_files
+        if debug and missing_files:
+            print("%s missing files!"%resource)
+
+    for resource, missing_file in missing_mappings.items():
+
+        if missing_file:
+            print("Missing file for %s"%resource)
+            # parse mappings if missing
+            if resource == 'GO':
+                if debug:
+                    print("Parsing GO mappings")
+                input_folder = os.path.join(data_folder,'GO')
+                output_folder = os.path.join(mapping_folder,'GO')
+                goa_file = os.path.join(input_folder,'goa_human.gaf')
+                map_protein2go_ids(goa_file=goa_file, output_folder=output_folder)
+
+            if resource == 'MeSH':
+                if debug:
+                    print("Parsing MeSH mappings")
+                input_folder = os.path.join(data_folder,'MeSH')
+                output_folder = os.path.join(mapping_folder,'MeSH')
+                mesh_tree_file = os.path.join(input_folder,'desc2022.xml')
+                process_mesh_mapping(mesh_tree_file=mesh_tree_file, output_folder=output_folder)
+
+            if resource == 'Reactome':
+                if debug:
+                    print("Parsing Reactome mappings")
+                input_folder = os.path.join(data_folder,'Reactome')
+                output_folder = os.path.join(mapping_folder,'Reactome')
+                reactome_to_protein_file = os.path.join(input_folder, 'UniProt2Reactome.txt')
+                load_protein2pathway_data(reactome_to_protein_file, output_folder=output_folder)
+
+            if resource == 'Transcription_Factor_Dependence':
+                input_folder = os.path.join(mapping_folder, 'Transcription_Factor_Dependence')
+                #TODO
+
+
 def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, debug=False):
     '''
     This function checks the data_folder and mapping_folder if the required files are downloaded and parsed, respectively.
@@ -325,31 +390,55 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
     processed_files = {'MeSH': ['meshtree2meshname.json', 'edges_meshtree-IS-meshid_disease.csv',
                                 'meshterm-IS-meshid.json','edges_meshtree_to_meshtree.csv'], #TODO meshterms_per_cat.json?
                        'GO': ['go2protein.json','protein2go.json'],
-                       'Reactome': ['pathway2protein','protein2pathway'],
+                       'Reactome': ['pathway2protein.json','protein2pathway.json'],
                        'Transcription_Factor_Dependence': ['tf_protein_id_2_target_gene_id.json',
                                                            'tf_protein_id_2_target_protein_id.json']
                        }
 
+    ### Downloading data ###
     # determine which files need to be downloaded
     if redownload:
         # set everything to false, redownload everything
+        download_complete = False
         resource_to_data_file_bool = {}
         for resource, data_file_list in required_files.items():
             resource_to_data_file_bool[resource] = {data_file: False for data_file in data_file_list}
     else:
         # check to see which files are downloaded
-        resource_to_data_file_bool = check_input_files(required_files, data_folder, mapping_folder, debug=debug)
+        resource_to_data_file_bool,download_complete = check_required_files(required_files, data_folder, debug=debug)
 
-    # download files
-    download_data(resource_to_data_file_bool, data_folder)
+    if not download_complete:
+        # download files
+        download_data(resource_to_data_file_bool, data_folder)
 
-    # parse downloaded data
+        # check to see which downloaded files still are not available
+        resource_to_data_file_bool,download_complete_after_download = check_required_files(required_files, data_folder, debug=debug)
 
+        if not download_complete_after_download:
+            print("Error! Missing required biomedical knowledgebase data")
+            _, _ = check_required_files(required_files, data_folder, debug=True)
+            sys.exit(1)
+    if debug:
+        print("Data downloading phase completed.")
 
-    # check to see which files still are not available
-    resource_to_data_file_bool = check_input_files(required_files, data_folder, mapping_folder, debug=True)
+    ### Parsing data ###
+    resource_to_processed_file_bool, processed_files_complete = check_required_files(processed_files, mapping_folder, debug=debug)
+    if redownload or not processed_files_complete:
+        # process files
+        parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_folder,debug=debug)
+
+        # check to see which processed files still are not available
+        resource_to_processed_file_bool, processed_files_complete = check_required_files(processed_files, mapping_folder,
+                                                                                            debug=debug)
+        if not processed_files_complete:
+            print("Error! Could not process input data files")
+            _, _ = check_required_files(processed_files, mapping_folder, debug=True)
+            sys.exit(1)
+    if debug:
+        print("Parsing data phase completed.")
+    return
 
 
 data_folder = "../data"
-mapping_folder = "../data/parsed_mappings/"
-prepare_knowledge_base_data(data_folder, mapping_folder,redownload=True,debug=True)
+mapping_folder = "../parsed_mappings/"
+prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)
