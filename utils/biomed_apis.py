@@ -8,7 +8,7 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 
-POLLING_INTERVAL = 3
+POLLING_INTERVAL = 10
 
 API_URL = "https://rest.uniprot.org"
 
@@ -150,7 +150,7 @@ def print_progress_batches_uniprot_api(batch_index, size, total):
     print(f"Fetched: {n_fetched} / {total}", end='\r')
 
 
-def get_id_mapping_results_search_UniProtAPI(url):
+def get_id_mapping_results_search_uniprot_api(url):
     '''
     FUNCTION:
     - Download the API results from a url

@@ -8,6 +8,8 @@ import sys
 sys.path.append('..')
 
 from utils.biomedkg_utils import *
+from utils.biomed_apis import *
+from utils.other_functions import *
 
 
 def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml", output_folder="../parsed_mappings/MeSH/"):
@@ -309,8 +311,6 @@ def download_data(resource_to_data_file_bool, data_folder):
                     'UP000005640_9606.fasta':'https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/Eukaryota/UP000005640/UP000005640_9606.fasta.gz'
                     }
 
-    #TODO all_entrez2uniprot.json not downloaded TODO TODO
-
     for resource, data_file_bool_dict in resource_to_data_file_bool.items():
         for data_file, exists in data_file_bool_dict.items():
             if not exists:
@@ -338,6 +338,334 @@ def download_data(resource_to_data_file_bool, data_folder):
                 # update flag
                 resource_to_data_file_bool[resource][data_file] = os.path.exists(data_file_path)
     return resource_to_data_file_bool
+
+
+def get_short_full_names(names, section_key, section_values):
+    '''
+    FUNCTION:
+    - Get all names from an entry
+
+    PARAMS:
+    - names (list)
+    '''
+    # Full name
+    if section_key == 'fullName':
+        name = section_values['value']
+        names.append(name)
+
+    # Short names
+    if section_key == 'shortNames':
+        for entry in section_values:
+            name = entry['value']
+            names.append(name)
+
+            # EC Numbers
+    if section_key == 'ecNumbers':
+        for entry in section_values:
+            name = entry['value']
+            names.append(name)
+
+    return names
+
+
+def get_protein_names(entry, gene_names):
+    '''
+    FUNCTION:
+    - Taking entries in the UniProt API's results, parse the entries
+      and extract the protein names.
+
+    PARAMS:
+    - entry: The UniProt API's results
+    - gene_names (bool): Indicates whether you want the gene_names included
+    '''
+
+    protein_id = entry['from']
+
+    ''' Protein Names '''
+    names = list()
+
+    ''' Recommended name '''
+    try:
+        reccomended_name_section = entry['to']['proteinDescription']['recommendedName']
+        for section_key, section_values in reccomended_name_section.items():
+            names = get_short_full_names(names, section_key, section_values)
+    except:
+        pass
+
+    ''' Alternative Names '''
+    try:
+        alternative_name_section = entry['to']['proteinDescription']['alternativeNames']
+        for sub_entry in alternative_name_section:
+            for section_key, section_values in sub_entry.items():
+                names = get_short_full_names(names, section_key, section_values)
+    except:
+        pass
+
+    ''' Submitted Names '''
+    try:
+        sub_name_section = entry['to']['proteinDescription']['submissionNames']
+        for sub_entry in sub_name_section:
+            for section_key, section_values in sub_entry.items():
+                names = get_short_full_names(names, section_key, section_values)
+    except:
+        pass
+
+    '''Gene Names'''
+    if gene_names == True:
+        # Data for gene names
+        try:
+            rgenes = entry['to'][0]['genes'][0]
+        except:
+            pass
+
+        # Get gene names
+        for nametype, main_entry in rgenes.items():
+            if type(main_entry) == dict:
+                name = main_entry['value']
+            elif type(main_entry) == list:
+                for entry in main_entry:
+                    name = entry['value']
+            names.append(name)
+
+    return protein_id, names
+
+
+def curl_uniprot_api(ids, from_id, to_id, jobfile):
+    '''Submit job (API)'''
+    try:
+        os.system('rm %s' % jobfile)
+    except:
+        pass
+
+
+    BATCH_SIZE = 1000
+    if len(ids) < BATCH_SIZE:
+        BATCH_SIZE = len(ids) - 1
+
+    tot_reqs = int(len(ids) / BATCH_SIZE) + 1
+    for i in range(0, tot_reqs):
+
+        # Batch
+        if i != tot_reqs - 1:
+            ids_job = ','.join(list(ids)[i * BATCH_SIZE:(i + 1) * BATCH_SIZE])
+        else:
+            ids_job = ','.join(list(ids)[i * BATCH_SIZE:])
+
+        # API
+        command = 'curl --form "from=%s" --form "to=%s" --form "ids=%s" "https://rest.uniprot.org/idmapping/run" >> %s' % (
+            from_id,to_id,ids_job, jobfile)
+        print(command)
+        os.system(command)
+        if i != tot_reqs - 1:
+            os.system("echo. >> %s" % jobfile)
+
+    ''' Get results of job '''
+    results = dict()
+    with open(jobfile) as fin:
+        for line in fin:
+            job_id = json.loads(line)['jobId']
+            results[job_id] = dict()
+            if check_id_mapping_results_ready_uniprot_api(job_id):
+                link = get_id_mapping_results_link_uniprot_api(job_id)
+                results[job_id] = get_id_mapping_results_search_uniprot_api(link)
+
+    return results
+
+
+def get_protein_id_to_synonyms(protein_ids):
+    # Protein IDs to submit
+    prot_list = protein_ids
+
+    # Submit IDs to API to get names
+    uniprot_results = curl_uniprot_api(prot_list, from_id='UniProtKB_AC-ID', to_id='UniProtKB',
+                     jobfile='protein_id2entry.json')
+
+    # Extract IDs->Names
+    protein_id2names = dict()
+    for job_id, entries in uniprot_results.items():
+        for entry in entries['results']:
+            protein_id, names = get_protein_names(entry, gene_names=False)
+            for name in names:
+                protein_id2names.setdefault(protein_id, set()).add(name)
+    protein_id2names = switch_dictset_to_dictlist(protein_id2names)
+    return protein_id2names
+
+
+def get_uniprot_from_gene_names(gene_names):
+    results = curl_uniprot_api(gene_names, "Gene_Name", "UniProtKB-Swiss-Prot",
+                               '../data/curl_uniprot_job_ids_geneid2uniprotkb.json')
+
+    '''Dictionary from API data'''
+    gene_name_2_protein_id = dict()
+    for key in results.keys():
+        gene_name_2_protein_id[key] = get_to_uniprotid_from_genename_mapping_dict_uniprot_api(
+            results[key],
+            [9606],
+            filter_by_reviewed=True)
+
+    removed_genes = 0
+    for key, batch in gene_name_2_protein_id.items():
+        for gene_name, protein_ids in batch.copy().items():
+            if len(protein_ids) > 1:
+                gene_name_2_protein_id[key].pop(gene_name)
+                removed_genes += 1
+        print(removed_genes, 'genes removed because they were ambiguous\n' + \
+              'Names mapped to multiple proteins (possibly ok, but possibly not)')
+
+    new_gene_name_2_protein_id = dict()
+
+    for each_list in list(gene_name_2_protein_id.values()):
+        for gene_name, protein_ids in each_list.items():
+            for protein_id in protein_ids:
+                new_gene_name_2_protein_id.setdefault(gene_name, set()).add(protein_id)
+    gene_name_2_protein_id = new_gene_name_2_protein_id.copy()
+
+    gene_name_2_protein_id = switch_dictset_to_dictlist(gene_name_2_protein_id)
+
+    json.dump(gene_name_2_protein_id, open('../data/gene_name_2_protein_id.json', 'w'))
+
+    return gene_name_2_protein_id
+
+
+def extract_uniprot_to_entrez_mapping(protein_list, debug=False,
+                                      output_folder='./parsed_mappings/Transcription_Factor_Dependence'):
+    # Map proteins to GeneID
+    job_id = submit_id_mapping_uniprot_api(
+        from_db='UniProtKB_AC-ID',
+        to_db='GeneID',
+        ids=protein_list)
+
+    # This checks on the job until it is finished
+    if check_id_mapping_results_ready_uniprot_api(job_id):
+        link = get_id_mapping_results_link_uniprot_api(job_id)
+        results = get_id_mapping_results_search_uniprot_api(link)
+
+    gene_id_2_protein_id = dict()
+    protein_id_2_gene_id = dict()
+
+    for protein_to_gene in results['results']:
+        protein_id = protein_to_gene['from'].strip()
+        gene_id = protein_to_gene['to'].strip()
+        if gene_id != '' and protein_id != '':
+            gene_id_2_protein_id.setdefault(gene_id, set()).add(protein_id)
+            protein_id_2_gene_id.setdefault(protein_id, set()).add(gene_id)
+
+    if debug:
+        print('\nAfter UniProt API')
+        print('Entrez-is-UniProt', len(gene_id_2_protein_id),
+              'UniProt-is-Entrez', len(protein_id_2_gene_id))
+
+    # output
+    gene_id_2_protein_id = switch_dictset_to_dictlist(gene_id_2_protein_id)
+    protein_id_2_gene_id = switch_dictset_to_dictlist(protein_id_2_gene_id)
+
+    json.dump(gene_id_2_protein_id, open(os.path.join(output_folder, 'all_entrez2uniprot.json'), 'w'))
+    json.dump(protein_id_2_gene_id, open(os.path.join(output_folder, 'all_uniprot2entrez.json'), 'w'))
+
+
+def extract_proteins_from_fasta(fasta_file):
+    headers = [l.strip("\n") for l in open(fasta_file,"r").readlines() if ">" in l]
+    proteins = set([h.split("|")[1] for h in headers])
+    return proteins
+
+
+def extract_uniprot_to_entrez_mapping(protein_list, debug=False,
+                                      output_folder='./parsed_mappings/Transcription_Factor_Dependence'):
+    # Map proteins to GeneID
+    job_id = submit_id_mapping_uniprot_api(
+        from_db='UniProtKB_AC-ID',
+        to_db='GeneID',
+        ids=protein_list)
+
+    # This checks on the job until it is finished
+    if check_id_mapping_results_ready_uniprot_api(job_id):
+        link = get_id_mapping_results_link_uniprot_api(job_id)
+        results = get_id_mapping_results_search_uniprot_api(link)
+
+    gene_id_2_protein_id = dict()
+    protein_id_2_gene_id = dict()
+
+    for protein_to_gene in results['results']:
+        protein_id = protein_to_gene['from'].strip()
+        gene_id = protein_to_gene['to'].strip()
+        if gene_id != '' and protein_id != '':
+            gene_id_2_protein_id.setdefault(gene_id, set()).add(protein_id)
+            protein_id_2_gene_id.setdefault(protein_id, set()).add(gene_id)
+
+    if debug:
+        print('\nAfter UniProt API')
+        print('Entrez-is-UniProt', len(gene_id_2_protein_id),
+              'UniProt-is-Entrez', len(protein_id_2_gene_id))
+
+    # output
+    gene_id_2_protein_id = switch_dictset_to_dictlist(gene_id_2_protein_id)
+    protein_id_2_gene_id = switch_dictset_to_dictlist(protein_id_2_gene_id)
+
+    return gene_id_2_protein_id, protein_id_2_gene_id
+
+
+def prepare_tfd_mappings(input_folder = '../data/Transcription_Factor_Dependence',
+                         output_folder='../parsed_mappings/Transcription_Factor_Dependence',
+                         debug=False):
+
+    # required files: GRNdb folder, UniProt Human Proteome fasta file
+    grndb_folder = os.path.join(input_folder,'GRNdb')
+    fasta_file = os.path.join(input_folder,'UP000005640_9606.fasta')
+    # check they exist or exit
+
+    # read GRNdb folder
+    tf_gene_name_2_target_gene_name = dict()  # TF gene name to target gene name
+    gene_names = set()  # Gene Names (Tfs and targets)
+    tf_gene_names = set()  # Transcription Factor gene names
+    target_gene_names = set()  # Target gene names
+    for file in os.listdir(grndb_folder):
+        if 'txt' not in file:
+            continue
+
+        for line in open(os.path.join(grndb_folder, file)):
+            line = line.strip().split('\t')
+            if "There is something wrong" in line[0]:
+                break
+
+            confidence = line[5]
+            if confidence == 'High':
+                # Gene names
+                tf_gene_name = line[0]
+                targ_gene_name = line[1]
+
+                # Save gene names
+                gene_names.add(tf_gene_name)
+                gene_names.add(targ_gene_name)
+                tf_gene_names.add(tf_gene_name)
+                target_gene_names.add(targ_gene_name)
+
+                # TF Gene -targets-> Target Gene
+                tf_gene_name_2_target_gene_name.setdefault(tf_gene_name, set()).add(targ_gene_name)
+
+    # Change the values from set into a list
+    tf_gene_name_2_target_gene_name = switch_dictset_to_dictlist(tf_gene_name_2_target_gene_name)
+
+    # map genes to protein ids
+    gene_name_2_protein_id = get_uniprot_from_gene_names(gene_names)
+
+    # extract proteins from uniprot fasta
+    all_proteins = extract_proteins_from_fasta(fasta_file)
+
+    # get entrez to uniprot mappings
+    gene_id_2_protein_id,protein_id_2_gene_id = extract_uniprot_to_entrez_mapping(all_proteins, debug=True)
+
+    # get uniprot to name mappings
+    protein_id2names = get_protein_id_to_synonyms(all_proteins)
+
+    # output
+    json.dump(tf_gene_name_2_target_gene_name, open(os.path.join(output_folder,'tf_gene_name_2_target_gene_name.json'),'w'))
+    json.dump(gene_name_2_protein_id, open(os.path.join(output_folder, 'gene_name_2_protein_id.json'), 'w'))
+    json.dump(protein_id2names, open(os.path.join(output_folder, 'id2synonyms_not_case_varied.json'), 'w'))
+    json.dump(gene_id_2_protein_id, open(os.path.join(output_folder, 'all_entrez2uniprot.json'), 'w'))
+    json.dump(protein_id_2_gene_id, open(os.path.join(output_folder, 'all_uniprot2entrez.json'), 'w'))
+
+
+
 
 
 def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_folder, debug=False):
@@ -381,7 +709,8 @@ def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_
 
             if resource == 'Transcription_Factor_Dependence':
                 input_folder = os.path.join(mapping_folder, 'Transcription_Factor_Dependence')
-                #TODO
+                output_folder = os.path.join(mapping_folder, 'Transcription_Factor_Dependence')
+                prepare_tfd_mappings(input_folder=input_folder)
 
 
 def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, debug=False):
@@ -398,15 +727,14 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
     required_files = {'MeSH': ['desc2022.xml', 'mtrees2021.bin'], #TODO MeSH dates should be generalized
                       'GO': ['go-basic.obo', 'goa_human.gaf'],
                       'Reactome': ['UniProt2Reactome.txt', 'ReactomePathwaysRelation.txt'],
-                      'Transcription_Factor_Dependence': ['GRNdb','UP000005640_9606.fasta','all_entrez2uniprot.json']
+                      'Transcription_Factor_Dependence': ['GRNdb','UP000005640_9606.fasta']
                       }
 
     processed_files = {'MeSH': ['meshtree2meshname.json', 'edges_meshtree-IS-meshid_disease.csv',
                                 'meshterm-IS-meshid.json','edges_meshtree_to_meshtree.csv'], #TODO meshterms_per_cat.json?
                        'GO': ['go2protein.json','protein2go.json'],
                        'Reactome': ['pathway2protein.json','protein2pathway.json'],
-                       'Transcription_Factor_Dependence': ['tf_protein_id_2_target_gene_id.json',
-                                                           'tf_protein_id_2_target_protein_id.json']
+                       'Transcription_Factor_Dependence': ['all_entrez2uniprot.json','all_uniprot2entrez.json','id2synonyms_not_case_varied.json','gene_name_2_protein_id.json','tf_gene_name_2_target_gene_name']
                        }
 
     ### Downloading data ###
