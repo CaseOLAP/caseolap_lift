@@ -457,8 +457,12 @@ def curl_uniprot_api(ids, from_id, to_id, jobfile):
         print(command)
         os.system(command)
         if i != tot_reqs - 1:
-            os.system("echo '' >> %s" % jobfile)
-#            os.system("echo. >> %s" % jobfile)
+            # temp for splitting the lines, quick windows/linux patch
+            os.system("echo @ >> %s" % jobfile)
+            # os.system("echo. >> %s" % jobfile) # windows only, here
+    # remove the temp character and replace file
+    os.system("cat %s | sed 's/@//' > temp.json" %jobfile)
+    os.system("mv temp.json %s"%jobfile)
 
     ''' Get results of job '''
     results = dict()
@@ -838,6 +842,8 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
 
 
 root_folder = '/caseolap_lift_shared_folder'
+root_folder = '../'
+
 data_folder=os.path.join(root_folder,'data')
 mapping_folder=os.path.join(root_folder,'parsed_mappings')
 

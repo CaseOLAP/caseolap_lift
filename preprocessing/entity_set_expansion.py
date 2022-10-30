@@ -420,6 +420,7 @@ parameters = {'go-term': 'GO:0005739',
               'include_transcription_factor_dependence': True}
 
 root_directory = '/caseolap_lift_shared_folder'
+root_directory = '../'
 mapping_folder = os.path.join(root_directory,'parsed_mappings')
 output_folder = os.path.join(root_directory,'output')
 if not os.path.exists(output_folder):
