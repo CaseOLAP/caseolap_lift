@@ -457,7 +457,8 @@ def curl_uniprot_api(ids, from_id, to_id, jobfile):
         print(command)
         os.system(command)
         if i != tot_reqs - 1:
-            os.system("echo. >> %s" % jobfile)
+            os.system("echo '' >> %s" % jobfile)
+#            os.system("echo. >> %s" % jobfile)
 
     ''' Get results of job '''
     results = dict()
@@ -491,9 +492,9 @@ def get_protein_id_to_synonyms(protein_ids):
     return protein_id2names
 
 
-def get_uniprot_from_gene_names(gene_names):
+def get_uniprot_from_gene_names(gene_names,mapping_folder="../parsed_mappings/"):
     results = curl_uniprot_api(gene_names, "Gene_Name", "UniProtKB-Swiss-Prot",
-                               '../data/curl_uniprot_job_ids_geneid2uniprotkb.json')
+                               os.path.join(mapping_folder,'curl_uniprot_job_ids_geneid2uniprotkb.json'))
 
     '''Dictionary from API data'''
     gene_name_2_protein_id = dict()
@@ -522,7 +523,7 @@ def get_uniprot_from_gene_names(gene_names):
 
     gene_name_2_protein_id = switch_dictset_to_dictlist(gene_name_2_protein_id)
 
-    json.dump(gene_name_2_protein_id, open('../data/gene_name_2_protein_id.json', 'w'))
+    json.dump(gene_name_2_protein_id, open(os.path.join(mapping_folder,'gene_name_2_protein_id.json'), 'w'))
 
     return gene_name_2_protein_id
 
@@ -646,7 +647,7 @@ def prepare_tfd_mappings(input_folder = '../data/Transcription_Factor_Dependence
     tf_gene_name_2_target_gene_name = switch_dictset_to_dictlist(tf_gene_name_2_target_gene_name)
 
     # map genes to protein ids
-    gene_name_2_protein_id = get_uniprot_from_gene_names(gene_names)
+    gene_name_2_protein_id = get_uniprot_from_gene_names(gene_names,mapping_folder=output_folder)
 
     # extract proteins from uniprot fasta
     all_proteins = extract_proteins_from_fasta(fasta_file)
@@ -663,9 +664,6 @@ def prepare_tfd_mappings(input_folder = '../data/Transcription_Factor_Dependence
     json.dump(protein_id2names, open(os.path.join(output_folder, 'id2synonyms_not_case_varied.json'), 'w'))
     json.dump(gene_id_2_protein_id, open(os.path.join(output_folder, 'all_entrez2uniprot.json'), 'w'))
     json.dump(protein_id_2_gene_id, open(os.path.join(output_folder, 'all_uniprot2entrez.json'), 'w'))
-
-
-
 
 
 def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_folder, debug=False):
@@ -690,7 +688,6 @@ def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_
                 output_folder = os.path.join(mapping_folder,'GO')
                 goa_file = os.path.join(input_folder,'goa_human.gaf')
                 map_protein2go_ids(goa_file=goa_file, output_folder=output_folder)
-
             if resource == 'MeSH':
                 if debug:
                     print("Parsing MeSH mappings")
@@ -708,9 +705,9 @@ def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_
                 load_protein2pathway_data(reactome_to_protein_file, output_folder=output_folder)
 
             if resource == 'Transcription_Factor_Dependence':
-                input_folder = os.path.join(mapping_folder, 'Transcription_Factor_Dependence')
+                input_folder = os.path.join(data_folder, 'Transcription_Factor_Dependence')
                 output_folder = os.path.join(mapping_folder, 'Transcription_Factor_Dependence')
-                prepare_tfd_mappings(input_folder=input_folder)
+                prepare_tfd_mappings(input_folder=input_folder,output_folder=output_folder)
 
 
 def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, debug=False):
@@ -734,7 +731,7 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
                                 'meshterm-IS-meshid.json','edges_meshtree_to_meshtree.csv'], #TODO meshterms_per_cat.json?
                        'GO': ['go2protein.json','protein2go.json'],
                        'Reactome': ['pathway2protein.json','protein2pathway.json'],
-                       'Transcription_Factor_Dependence': ['all_entrez2uniprot.json','all_uniprot2entrez.json','id2synonyms_not_case_varied.json','gene_name_2_protein_id.json','tf_gene_name_2_target_gene_name']
+                       'Transcription_Factor_Dependence': ['all_entrez2uniprot.json','all_uniprot2entrez.json','id2synonyms_not_case_varied.json','gene_name_2_protein_id.json','tf_gene_name_2_target_gene_name.json']
                        }
 
     ### Downloading data ###
@@ -781,6 +778,9 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
     return
 
 
-data_folder = "../data"
-mapping_folder = "../parsed_mappings/"
-# prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)
+root_folder = '/caseolap_lift_shared_folder'
+data_folder=os.path.join(root_folder,'data')
+mapping_folder=os.path.join(root_folder,'parsed_mappings')
+
+
+prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)

@@ -44,7 +44,8 @@ def load_mappings(resource_to_mapping_files, mappings_folder="./parsed_mappings/
 
         for mapping_file in file_list:
             # check the required files exist
-            file_path = os.join(resource_folder,mapping_file)
+            file_path = os.path.join(resource_folder,mapping_file)
+            print(file_path)
             if not os.path.exists(file_path):
                 print("Required %s file from %s resource does not exist! Exit" % (file_path,resource))
                 sys.exit(1)
@@ -311,6 +312,7 @@ def prepare_subcellular_compartment_proteins(parameters,
 
     # load data
     resource_mapping_files = prepare_resource_mappings(include_ppi, include_pathways, include_transcription_factor_dependence)
+    print(mapping_folder)
     resource_mappings = load_mappings(resource_mapping_files, mappings_folder=mapping_folder)
     go_id, go_id_to_links, go2protein = resource_mappings['GO']
 
@@ -477,11 +479,13 @@ parameters = {'go-term': 'GO:0005739',
               'pw_proportion_thresh': 0.50,
               'include_transcription_factor_dependence': False}
 
-print(os.getcwd())
-output_folder = "../output"
+root_directory = '/caseolap_lift_shared_folder'
+#data_folder = os.path.join(root_directory,'data')
+mapping_folder = os.path.join(root_directory,'parsed_mappings')
+output_folder = os.path.join(root_directory,'output')
 if not os.path.exists(output_folder):
    os.makedirs(output_folder)
    kg_output_folder = os.path.join(output_folder,"kg")
    print(kg_output_folder)
    os.makedirs(kg_output_folder)
-proteins = prepare_subcellular_compartment_proteins(parameters, output_folder=output_folder, debug=False)
+proteins = prepare_subcellular_compartment_proteins(parameters, mapping_folder=mapping_folder, output_folder=output_folder, debug=False)
