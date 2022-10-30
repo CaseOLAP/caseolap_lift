@@ -660,7 +660,7 @@ def prepare_tfd_mappings(input_folder = '../data/Transcription_Factor_Dependence
     gene_id_2_protein_id,protein_id_2_gene_id = extract_uniprot_to_entrez_mapping(all_proteins, debug=True)
 
     # get uniprot to name mappings
-    protein_id2names = get_protein_id_to_synonyms(all_proteins)
+    protein_id2names = get_protein_id_to_synonyms(all_proteins,mapping_folder=output_folder)
 
     # output
     json.dump(tf_gene_name_2_target_gene_name, open(os.path.join(output_folder,'tf_gene_name_2_target_gene_name.json'),'w'))
@@ -843,7 +843,7 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
 
 
 root_folder = '/caseolap_lift_shared_folder'
-root_folder = '../'
+#root_folder = '../'
 
 data_folder=os.path.join(root_folder,'data')
 mapping_folder=os.path.join(root_folder,'parsed_mappings')

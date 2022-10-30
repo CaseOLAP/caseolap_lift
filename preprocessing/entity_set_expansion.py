@@ -159,7 +159,8 @@ def convert_string_to_uniprot_ids(proteins, debug=False, return_mappings=False):
 
 
 def get_pathway_partners(proteins, pathway2protein, count_thresh=sys.maxsize, proportion_thresh=0.25, debug=False,
-                         output_folder="../output/kg/"):
+                         output_folder="../output/"):
+    kg_folder = os.path.join(output_folder,"kg")
     # Pick pathways that have a substantial amount of mitochondrial proteins
     # How do we define 'substantial'?
     pathways_of_interest = list()
@@ -177,7 +178,7 @@ def get_pathway_partners(proteins, pathway2protein, count_thresh=sys.maxsize, pr
 
     # output to kg
     if output_folder:
-        output_file = os.path.join(output_folder, "reactome_edges.csv")
+        output_file = os.path.join(kg_folder, "reactome_edges.csv")
         filtered_pathway2protein = {k: v for k, v in pathway2protein.items() if k in pathways_of_interest}
         h = []
         r = []
@@ -279,12 +280,13 @@ def prepare_subcellular_compartment_proteins(parameters,
         pathway_proteins = get_pathway_partners(organelle_proteins, pathway2protein,
                                                 count_thresh=pw_count_thresh,
                                                 proportion_thresh=pw_proportion_thresh,
+                                                output_folder = output_folder,
                                                 debug=debug)
         proteins_of_interest = proteins_of_interest.union(set(pathway_proteins))
         print("%d proteins added with common pathways" % len(pathway_proteins))
     if include_transcription_factor_dependence:
         gene_ids_2_protein_ids,protein_ids_2_gene_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name = resource_mappings['Transcription_Factor_Dependence']
-        tfd_proteins = get_transcription_factor_dependence_partners(organelle_proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name)
+        tfd_proteins = get_transcription_factor_dependence_partners(organelle_proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name,output_folder=output_folder)
         proteins_of_interest = proteins_of_interest.union(set(tfd_proteins))
         print("%d proteins from transcription factor dependence" % len(tfd_proteins))
 
@@ -302,7 +304,7 @@ def prepare_subcellular_compartment_proteins(parameters,
     return proteins_of_interest
 
 def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name, output_folder = "../output/kg"):
-
+    kg_folder = os.path.join(output_folder,'kg')
     '''Dictionary'''
     gene_name_2_gene_id = dict()
 
@@ -398,9 +400,9 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
     tf_protein_id_2_target_protein_id = switch_dictset_to_dictlist(tf_protein_id_2_target_protein_id)
 
     # TODO move to prepare_kg_data.py or utils
-    json.dump(tf_protein_id_2_target_gene_id, open(os.path.join(output_folder,"tf_protein_id_2_target_gene_id.json"), 'w'))
-    json.dump(target_protein_id_2_tf_protein_id, open(os.path.join(output_folder,"target_protein_id_2_tf_protein_id.json"), 'w'))
-    json.dump(tf_protein_id_2_target_protein_id, open(os.path.join(output_folder,"tf_protein_id_2_target_protein_id.json"), 'w'))
+    json.dump(tf_protein_id_2_target_gene_id, open(os.path.join(kg_folder,"tf_protein_id_2_target_gene_id.json"), 'w'))
+    json.dump(target_protein_id_2_tf_protein_id, open(os.path.join(kg_folder,"target_protein_id_2_tf_protein_id.json"), 'w'))
+    json.dump(tf_protein_id_2_target_protein_id, open(os.path.join(kg_folder,"tf_protein_id_2_target_protein_id.json"), 'w'))
     # get tf dependence proteins
     proteins_of_interest = set()
     
@@ -426,7 +428,7 @@ parameters = {'go-term': 'GO:0005739',
               'include_transcription_factor_dependence': True}
 
 root_directory = '/caseolap_lift_shared_folder'
-root_directory = '../'
+#root_directory = '../'
 mapping_folder = os.path.join(root_directory,'parsed_mappings')
 output_folder = os.path.join(root_directory,'output')
 if not os.path.exists(output_folder):
