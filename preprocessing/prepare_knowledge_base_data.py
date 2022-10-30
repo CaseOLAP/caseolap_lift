@@ -455,4 +455,4 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
 
 data_folder = "../data"
 mapping_folder = "../parsed_mappings/"
-#prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)
+# prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)

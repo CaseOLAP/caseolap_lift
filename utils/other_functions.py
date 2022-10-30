@@ -33,10 +33,6 @@ def load_protein2pathway_data_PE(uniprot2reactome_file_path, output_folder="./da
     return protein2pathway, pathway2protein
 
 
-
-
-
-
 def map_top_proteins2go(protein_DIS, protein2go, go_tree_of_interest, go_id2term):
     protein2go_DIS, go2protein_DIS, go_ids_DIS, go_terms_DIS = dict(), dict(), dict(), dict()
 
@@ -62,13 +58,6 @@ def map_top_proteins2go(protein_DIS, protein2go, go_tree_of_interest, go_id2term
     go_terms_DIS = dict(sorted(go_terms_DIS.items(), key = lambda x:x[1], reverse = True))
     
     return protein2go_DIS, go2protein_DIS, go_ids_DIS, go_terms_DIS
-
-
-
-
-
-
-
 
 def get_go_term_information(output_folder="./data/"):
     # Convert GO obo file to dict

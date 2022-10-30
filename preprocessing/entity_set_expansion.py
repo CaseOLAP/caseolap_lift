@@ -35,7 +35,37 @@ def extract_go_hierarchy(go_dict):
     return go_id_to_links
 
 
-def load_mappings(output_folder):
+def load_mappings_2(mappings_folder="./parsed_mappings/"):
+
+    resource_to_mappings = {'GO':['go_id.json','go_id_to_links.json','go2protein.json'],
+                            'Reactome':['protein2pathway.json'],
+                            'TFD':['all_entrez2uniprot.json','all_uniprot2entrez.json','id2synonyms_not_case_varied.json','gene_name_2_protein_id.json']
+                            }
+    mappings = {}
+
+    for resource, filename in resource_to_mappings.items():
+        resouce_folder = os.path.join(mappings_folder,resource)
+
+        # GO
+        if resource == 'GO':
+            print("Loading GO mappings")
+            #TODO
+
+        if resource == 'Reactome':
+            print("Loading Reactome mappings")
+
+
+        if resource == 'TFD':
+            print("Loading Transcription Factor mappings")
+
+    '''
+    required mappings:
+    - go: go_id, go_id_to_links, go2protein
+
+    '''
+
+
+def load_mappings(output_folder): #TODO move GO stuff to prepare_knowledge_base_data.py
     # TODO have these passed in
     global go_term_cell_comp2protein
     global go_id_to_links
@@ -43,13 +73,7 @@ def load_mappings(output_folder):
     data_folder = "../data/"
 
     '''Protein to GO'''
-    # !rm 'data/goa_human.gaf'
-    # !wget -N -P data/ http://geneontology.org/gene-associations/goa_human.gaf.gz
-    # !gunzip 'data/goa_human.gaf.gz'
     protein2go, go2protein = map_protein2go_ids(goa_file = '../data/GO/goa_human.gaf',output_folder=data_folder)
-
-    '''GO to GO'''
-    # !wget -N -P data/ http://purl.obolibrary.org/obo/go/go-basic.obo
 
     # GO Term information
     go_dict = get_go_term_information(output_folder=data_folder)
@@ -74,9 +98,6 @@ def load_mappings(output_folder):
 
     # extract go hierarchy (is_a and part_of)
     go_id_to_links = extract_go_hierarchy(go_dict)
-
-
-
 
 
 def get_interacting_partners(proteins, k=1, score_thresh=0.975,
@@ -206,9 +227,8 @@ def convert_string_to_uniprot_ids(proteins, debug=False, return_mappings=False):
 
 def get_pathway_partners(proteins, count_thresh=sys.maxsize, proportion_thresh=0.25, debug=False,
                          output_folder="../output/kg/"):
-    protein2pathway, pathway2protein = load_protein2pathway_data('../data/UniProt2Reactome.txt',
-                                                                 output_folder="../data/") #TODO move to prepare_kg_data.py or utils
 
+    #TODO load pathway2protein
     # Pick pathways that have a substantial amount of mitochondrial proteins
     # How do we define 'substantial'?
     pathways_of_interest = list()
@@ -278,11 +298,12 @@ def prepare_subcellular_compartment_proteins(parameters,
     include_transcription_factor_dependence = parameters['include_transcription_factor_dependence']
 
     # load data
-    load_mappings(output_folder)
+    resouce_mappings = load_mappings(output_folder)
 
     # Get organelle-specific proteins
     #     organelle_proteins = get_organelle_proteins(go_term_cell_comp2protein, organelle_name = organelle_name)
     organelle_proteins = get_proteins_from_go(go_term, go_id_to_links, go2protein)
+    #TODO get_proteins_from_go(resource_mappings['GO'])
 
     print("%d proteins relevant to go term %s" % (len(organelle_proteins), go_term))
     proteins_of_interest = set(organelle_proteins)
@@ -297,6 +318,7 @@ def prepare_subcellular_compartment_proteins(parameters,
         proteins_of_interest = proteins_of_interest.union(set(ppi_proteins))
         print("%d proteins added from protein-protein interaction" % len(ppi_proteins))
     if include_pathways:
+        #TODO get_pathway_partners(pathway2protein)
         pathway_proteins = get_pathway_partners(organelle_proteins,
                                                 count_thresh=pw_count_thresh,
                                                 proportion_thresh=pw_proportion_thresh,
@@ -304,6 +326,7 @@ def prepare_subcellular_compartment_proteins(parameters,
         proteins_of_interest = proteins_of_interest.union(set(pathway_proteins))
         print("%d proteins added with common pathways" % len(pathway_proteins))
     if include_transcription_factor_dependence:
+        #TODO get_transcription_factor_dependence_partners(resource_mappings['TFD'])
         tfd_proteins = get_transcription_factor_dependence_partners(organelle_proteins)
         proteins_of_interest = proteins_of_interest.union(set(tfd_proteins))
         print("%d proteins from transcription factor dependence" % len(tfd_proteins))
@@ -482,13 +505,19 @@ def get_transcription_factor_dependence_partners(proteins,data_folder = '../data
     print("Added proteins: %d"%(len(added_proteins)))
     return added_proteins
 
+'''
+required mappings:
+- go: go_id, go_id_to_links, go2protein
+
+'''
+
 parameters = {'go-term': 'GO:0005739',
               'include_ppi': True,
               'ppi_k': 1, 'ppi_score_thresh': 0.99,
               'include_pathways': True,
               'pw_count_thresh': 4,
               'pw_proportion_thresh': 0.50,
-              'include_transcription_factor_dependence': True}
+              'include_transcription_factor_dependence': False}
 
 print(os.getcwd())
 output_folder = "../output"
