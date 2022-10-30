@@ -202,7 +202,9 @@ def get_pathway_partners(proteins, pathway2protein, count_thresh=sys.maxsize, pr
 
 #TODO make it accept multiple GO ID's
 def get_proteins_from_go(go_id, go_id_to_links, go2protein):
+
     # go through the hierarchy and get proteins
+
     go_queue = [go_id]
     extracted_proteins = set()
     while len(go_queue) > 0:
@@ -210,7 +212,8 @@ def get_proteins_from_go(go_id, go_id_to_links, go2protein):
         if g in go2protein:
             prots = go2protein[g]
             extracted_proteins = extracted_proteins.union(prots)
-            go_queue += go_id_to_links[g]['children']
+            if g in go_id_to_links:
+                go_queue += go_id_to_links[g]['children']
 
     print("%d proteins extracted" % len(extracted_proteins))
     return extracted_proteins
@@ -231,7 +234,7 @@ def prepare_resource_mappings(include_ppi, include_pathways, include_transcripti
     # all mappings
     resource_to_mapping_files = {'GO':['go_id_to_links.json','go2protein.json'],
                             'Reactome':['pathway2protein.json'],
-                            'Transcription_Factor_Dependence':['all_entrez2uniprot.json','all_uniprot2entrez.json','id2synonyms_not_case_varied.json','gene_name_2_protein_id.json']#TODO
+                            'Transcription_Factor_Dependence':['all_entrez2uniprot.json','all_uniprot2entrez.json','gene_name_2_protein_id.json','tf_gene_name_2_target_gene_name.json']#TODO
                             }
     return {resource: mapping_files for resource,mapping_files in resource_to_mapping_files.items() if resource in resources_to_include}
 
@@ -280,7 +283,7 @@ def prepare_subcellular_compartment_proteins(parameters,
         proteins_of_interest = proteins_of_interest.union(set(pathway_proteins))
         print("%d proteins added with common pathways" % len(pathway_proteins))
     if include_transcription_factor_dependence:
-        protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name = resource_mappings['Transcription_Factor_Dependence']
+        gene_ids_2_protein_ids,protein_ids_2_gene_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name = resource_mappings['Transcription_Factor_Dependence']
         tfd_proteins = get_transcription_factor_dependence_partners(organelle_proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name)
         proteins_of_interest = proteins_of_interest.union(set(tfd_proteins))
         print("%d proteins from transcription factor dependence" % len(tfd_proteins))
@@ -344,11 +347,14 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
     tf_protein_id_2_target_gene_id = dict()
     tf_protein_id_2_target_protein_id = dict()
     target_protein_id_2_tf_protein_id = dict()
-    print(len(tf_gene_name_2_target_gene_name))
-    print("Gene name to target gene name")
-    print([(k,v) for k,v in tf_gene_name_2_target_gene_name.items()][:10])
-    print("Gene name to protein id")
-    print([(k,v) for k,v in gene_name_2_protein_id.items()][:10])
+    # print(len(tf_gene_name_2_target_gene_name))
+    # print("Gene name to target gene name")
+    # print([(k,v) for k,v in tf_gene_name_2_target_gene_name.items()][:10])
+    # print("Gene name to protein id")
+    # print([(k,v) for k,v in gene_name_2_protein_id.items()][:10])
+    #
+    # print(len(tf_gene_name_2_target_gene_name))
+    # print("asdf")
 
     for tf_gene_name, target_gene_names in tf_gene_name_2_target_gene_name.items():
     
@@ -356,7 +362,7 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
         try:
             tf_protein_ids = gene_name_2_protein_id[tf_gene_name]
             tf_protein_ids = list(tf_protein_ids)
-            print(len(tf_protein_ids))
+            # print(len(tf_protein_ids))
         except:
             #print("%s gene not found!"%(tf_gene_name))
             continue
@@ -412,9 +418,9 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
     return added_proteins
 
 parameters = {'go-term': 'GO:0005739',
-              'include_ppi': False,
+              'include_ppi': True,
               'ppi_k': 1, 'ppi_score_thresh': 0.99,
-              'include_pathways': False,
+              'include_pathways': True,
               'pw_count_thresh': 4,
               'pw_proportion_thresh': 0.50,
               'include_transcription_factor_dependence': True}

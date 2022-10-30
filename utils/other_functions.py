@@ -88,13 +88,14 @@ def separate_go_terms_into_three_lists_for_each_tree(go_dict):
     go_bio_proc, go_cell_comp, go_mol_func = list(), list(), list()
 
     for go, go_info in go_dict.items():
-        tree_name = go_info['namespace'][0]
-        if tree_name == 'biological_process':
-            go_bio_proc.append(go)
-        elif tree_name == 'cellular_component':
-            go_cell_comp.append(go)
-        elif tree_name == 'molecular_function':
-            go_mol_func.append(go)    
+        if 'namespace' in go_info:
+            tree_name = go_info['namespace'][0]
+            if tree_name == 'biological_process':
+                go_bio_proc.append(go)
+            elif tree_name == 'cellular_component':
+                go_cell_comp.append(go)
+            elif tree_name == 'molecular_function':
+                go_mol_func.append(go)
             
     return go_bio_proc, go_cell_comp, go_mol_func
 

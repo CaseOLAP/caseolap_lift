@@ -171,7 +171,7 @@ def get_id_mapping_results_search_uniprot_api(url):
         query["compressed"][0].lower() == "true" if "compressed" in query else False
     )
     parsed = parsed._replace(query=urlencode(query, doseq=True))
-    url = parsed.geturl()
+    url = parsed.geturl() #TODO API hangs here on Windows
     request = session_UniProtAPI.get(url)
     request.raise_for_status()
     results = decode_results_uniprot_api(request, file_format, compressed)

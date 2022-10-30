@@ -748,28 +748,29 @@ def prepare_go_mappings(input_folder = '../data/GO/', output_folder = '../parsed
     # GO Term information
     go_dict = get_go_term_information(gobasic_file=go_basic_file)
 
-    # # GO Term ID -> GO Term Name
-    # go_id2term = map_go_id2term(go_dict)
-    #
-    # # Separate GO terms into 3 lists for each type
-    # go_bio_proc, go_cell_comp, go_mol_func = separate_go_terms_into_three_lists_for_each_tree(go_dict)
-    #
-    # # Cellular Compartment Names
-    # cell_comp_name = list()
-    # cell_comp_id2name = dict()
-    #
-    # for ID in go_cell_comp:
-    #     name = go_id2term[ID]
-    #     cell_comp_name.append(name)
-    #     cell_comp_id2name[ID] = name
-    #
-    # # GO Term Cellular Compartments -> Protein
-    # go_term_cell_comp2protein, protein2go_term_cell_comp = get_protein2go_term(protein2go, cell_comp_id2name)
+    # GO Term ID -> GO Term Name
+    go_id2term = map_go_id2term(go_dict)
+
+    # Separate GO terms into 3 lists for each type
+    go_bio_proc, go_cell_comp, go_mol_func = separate_go_terms_into_three_lists_for_each_tree(go_dict)
+
+    # Cellular Compartment Names
+    cell_comp_name = list()
+    cell_comp_id2name = dict()
+
+    for ID in go_cell_comp:
+        name = go_id2term[ID]
+        cell_comp_name.append(name)
+        cell_comp_id2name[ID] = name
+
+    # GO Term Cellular Compartments -> Protein
+    go_term_cell_comp2protein, protein2go_term_cell_comp = get_protein2go_term(protein2go, cell_comp_id2name)
 
     # extract go hierarchy (is_a and part_of)
     go_id_to_links = extract_go_hierarchy(go_dict)
 
     json.dump(go_id_to_links, open(os.path.join(output_folder,"go_id_to_links.json"),'w'))
+    print(len(go_id_to_links))
     # json.dump(go_term_cell_comp2protein, open(os.path.join(output_folder,"go_term_cell_comp2protein.json"),'w')) # Don't think we need this
 
 
@@ -847,5 +848,22 @@ root_folder = '../'
 data_folder=os.path.join(root_folder,'data')
 mapping_folder=os.path.join(root_folder,'parsed_mappings')
 
-
 prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)
+
+## Windows UniProt API debugging below.
+# ''' Get results of job '''
+# jobfile="../parsed_mappings/Transcription_Factor_Dependence/curl_uniprot_job_ids_geneid2uniprotkb.json"
+# # job_id=
+# results = dict()
+# with open(jobfile) as fin:
+#     for line in fin:
+#         job_id = json.loads(line)['jobId']
+#         results[job_id] = dict()
+#         print(job_id)
+#         if check_id_mapping_results_ready_uniprot_api(job_id):
+#             print(job_id,"ready")
+#             link = get_id_mapping_results_link_uniprot_api(job_id)
+#             print(link)
+#             results[job_id] = get_id_mapping_results_search_uniprot_api(link)
+# print(results)
+
