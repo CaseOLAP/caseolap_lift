@@ -27,7 +27,7 @@ def load_mappings(resource_to_mapping_files, mappings_folder="./parsed_mappings/
                 sys.exit(1)
 
             # load file and store
-            mapping = json.load(file_path,'r')
+            mapping = json.load(open(file_path,'r'))
             resource_to_mappings[resource] += [mapping]
 
     return resource_to_mappings
@@ -160,7 +160,6 @@ def convert_string_to_uniprot_ids(proteins, debug=False, return_mappings=False):
 
 def get_pathway_partners(proteins, pathway2protein, count_thresh=sys.maxsize, proportion_thresh=0.25, debug=False,
                          output_folder="../output/kg/"):
-
     # Pick pathways that have a substantial amount of mitochondrial proteins
     # How do we define 'substantial'?
     pathways_of_interest = list()
@@ -227,12 +226,12 @@ def prepare_resource_mappings(include_ppi, include_pathways, include_transcripti
     if include_pathways:
         resources_to_include += ['Reactome']
     if include_transcription_factor_dependence:
-        resources_to_include += ['TFD']
+        resources_to_include += ['Transcription_Factor_Dependence']
 
     # all mappings
     resource_to_mapping_files = {'GO':['go_id_to_links.json','go2protein.json'],
-                            'Reactome':['protein2pathway.json'],
-                            'TFD':['all_entrez2uniprot.json','all_uniprot2entrez.json','id2synonyms_not_case_varied.json','gene_name_2_protein_id.json']#TODO
+                            'Reactome':['pathway2protein.json'],
+                            'Transcription_Factor_Dependence':['all_entrez2uniprot.json','all_uniprot2entrez.json','id2synonyms_not_case_varied.json','gene_name_2_protein_id.json']#TODO
                             }
     return {resource: mapping_files for resource,mapping_files in resource_to_mapping_files.items() if resource in resources_to_include}
 
@@ -255,7 +254,7 @@ def prepare_subcellular_compartment_proteins(parameters,
     resource_mapping_files = prepare_resource_mappings(include_ppi, include_pathways, include_transcription_factor_dependence)
     print(mapping_folder)
     resource_mappings = load_mappings(resource_mapping_files, mappings_folder=mapping_folder)
-    go_id, go_id_to_links, go2protein = resource_mappings['GO']
+    go_id_to_links, go2protein = resource_mappings['GO']
 
     # Get organelle-specific proteins
     organelle_proteins = get_proteins_from_go(go_term, go_id_to_links, go2protein)
@@ -281,7 +280,7 @@ def prepare_subcellular_compartment_proteins(parameters,
         proteins_of_interest = proteins_of_interest.union(set(pathway_proteins))
         print("%d proteins added with common pathways" % len(pathway_proteins))
     if include_transcription_factor_dependence:
-        protein_ids_2_gene_ids,gene_ids_2_protein_ids,protein_id2syn,gene_name_2_protein_id,tf_gene_name_2_target_gene_name = resource_mappings['TFD']
+        protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name = resource_mappings['Transcription_Factor_Dependence']
         tfd_proteins = get_transcription_factor_dependence_partners(organelle_proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name)
         proteins_of_interest = proteins_of_interest.union(set(tfd_proteins))
         print("%d proteins from transcription factor dependence" % len(tfd_proteins))
@@ -299,7 +298,7 @@ def prepare_subcellular_compartment_proteins(parameters,
             print("Written to file %s"%out_organelle_list_file)
     return proteins_of_interest
 
-def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name):
+def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name, output_folder = "../output/kg"):
 
     '''Dictionary'''
     gene_name_2_gene_id = dict()
@@ -345,13 +344,19 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
     tf_protein_id_2_target_gene_id = dict()
     tf_protein_id_2_target_protein_id = dict()
     target_protein_id_2_tf_protein_id = dict()
+    print(len(tf_gene_name_2_target_gene_name))
+    print("Gene name to target gene name")
+    print([(k,v) for k,v in tf_gene_name_2_target_gene_name.items()][:10])
+    print("Gene name to protein id")
+    print([(k,v) for k,v in gene_name_2_protein_id.items()][:10])
+
     for tf_gene_name, target_gene_names in tf_gene_name_2_target_gene_name.items():
     
         # TF Gene Name -is- TF Protein ID
         try:
             tf_protein_ids = gene_name_2_protein_id[tf_gene_name]
             tf_protein_ids = list(tf_protein_ids)
-            #print(len(tf_protein_ids))
+            print(len(tf_protein_ids))
         except:
             #print("%s gene not found!"%(tf_gene_name))
             continue
@@ -387,9 +392,9 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
     tf_protein_id_2_target_protein_id = switch_dictset_to_dictlist(tf_protein_id_2_target_protein_id)
 
     # TODO move to prepare_kg_data.py or utils
-    json.dump(tf_protein_id_2_target_gene_id, open('../data/tf_protein_id_2_target_gene_id.json', 'w'))
-    json.dump(target_protein_id_2_tf_protein_id, open('../data/target_protein_id_2_tf_protein_id.json', 'w'))
-    json.dump(tf_protein_id_2_target_protein_id, open('../data/tf_protein_id_2_target_protein_id.json', 'w'))
+    json.dump(tf_protein_id_2_target_gene_id, open(os.path.join(output_folder,"tf_protein_id_2_target_gene_id.json"), 'w'))
+    json.dump(target_protein_id_2_tf_protein_id, open(os.path.join(output_folder,"target_protein_id_2_tf_protein_id.json"), 'w'))
+    json.dump(tf_protein_id_2_target_protein_id, open(os.path.join(output_folder,"tf_protein_id_2_target_protein_id.json"), 'w'))
     # get tf dependence proteins
     proteins_of_interest = set()
     
@@ -407,12 +412,12 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
     return added_proteins
 
 parameters = {'go-term': 'GO:0005739',
-              'include_ppi': True,
+              'include_ppi': False,
               'ppi_k': 1, 'ppi_score_thresh': 0.99,
-              'include_pathways': True,
+              'include_pathways': False,
               'pw_count_thresh': 4,
               'pw_proportion_thresh': 0.50,
-              'include_transcription_factor_dependence': False}
+              'include_transcription_factor_dependence': True}
 
 root_directory = '/caseolap_lift_shared_folder'
 mapping_folder = os.path.join(root_directory,'parsed_mappings')

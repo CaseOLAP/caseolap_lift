@@ -473,13 +473,13 @@ def curl_uniprot_api(ids, from_id, to_id, jobfile):
     return results
 
 
-def get_protein_id_to_synonyms(protein_ids):
+def get_protein_id_to_synonyms(protein_ids,mapping_folder='../parsed_mappings/'):
     # Protein IDs to submit
     prot_list = protein_ids
 
     # Submit IDs to API to get names
     uniprot_results = curl_uniprot_api(prot_list, from_id='UniProtKB_AC-ID', to_id='UniProtKB',
-                     jobfile='protein_id2entry.json')
+                     jobfile=os.path.join(mapping_folder,'protein_id2entry.json'))
 
     # Extract IDs->Names
     protein_id2names = dict()
