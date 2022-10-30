@@ -710,7 +710,6 @@ def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_
                     print("Parsing GO mappings")
                 input_folder = os.path.join(data_folder,'GO')
                 output_folder = os.path.join(mapping_folder,'GO')
-
                 prepare_go_mappings(input_folder=input_folder, output_folder=output_folder)
 
             if resource == 'MeSH':
@@ -730,6 +729,8 @@ def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_
                 load_protein2pathway_data(reactome_to_protein_file, output_folder=output_folder)
 
             if resource == 'Transcription_Factor_Dependence':
+                if debug:
+                    print("Parsing Transcription_Factor_Dependence mappings")
                 input_folder = os.path.join(data_folder, 'Transcription_Factor_Dependence')
                 output_folder = os.path.join(mapping_folder, 'Transcription_Factor_Dependence')
                 prepare_tfd_mappings(input_folder=input_folder,output_folder=output_folder)
@@ -787,7 +788,7 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
 
     processed_files = {'MeSH': ['meshtree2meshname.json', 'edges_meshtree-IS-meshid_disease.csv',
                                 'meshterm-IS-meshid.json','edges_meshtree_to_meshtree.csv'], #TODO meshterms_per_cat.json?
-                       'GO': ['go2protein.json','protein2go.json'],
+                       'GO': ['go2protein.json','protein2go.json','go_id_to_links.json'],
                        'Reactome': ['pathway2protein.json','protein2pathway.json'],
                        'Transcription_Factor_Dependence': ['all_entrez2uniprot.json','all_uniprot2entrez.json','id2synonyms_not_case_varied.json','gene_name_2_protein_id.json','tf_gene_name_2_target_gene_name.json']
                        }
