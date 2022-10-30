@@ -666,6 +666,30 @@ def prepare_tfd_mappings(input_folder = '../data/Transcription_Factor_Dependence
     json.dump(protein_id_2_gene_id, open(os.path.join(output_folder, 'all_uniprot2entrez.json'), 'w'))
 
 
+#TODO move to prepare_kg_data.py or utils
+def extract_go_hierarchy(go_dict):
+    go_id_to_links = {}
+
+    for go_term, go_fields in go_dict.items():
+
+        parents = []
+        if 'is_a' in go_fields:
+            parents += [p.split(" ! ")[0] for p in go_fields['is_a']]
+        if 'relationship' in go_fields:
+            parents += [p.split(" ! ")[0].strip('part_of ') for p in go_fields['relationship'] if 'part_of' in p]
+
+        # add to dict
+        for g in [go_term] + parents:
+            if g not in go_id_to_links:
+                go_id_to_links[g] = dict()
+                go_id_to_links[g]['parents'] = []
+                go_id_to_links[g]['children'] = []
+        for p in parents:
+            go_id_to_links[p]['children'] += [go_term]
+            go_id_to_links[go_term]['parents'] += [p]
+    return go_id_to_links
+
+
 def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_folder, debug=False):
 
     # find out which resources are missing mappings
@@ -686,8 +710,9 @@ def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_
                     print("Parsing GO mappings")
                 input_folder = os.path.join(data_folder,'GO')
                 output_folder = os.path.join(mapping_folder,'GO')
-                goa_file = os.path.join(input_folder,'goa_human.gaf')
-                map_protein2go_ids(goa_file=goa_file, output_folder=output_folder)
+
+                prepare_go_mappings(input_folder=input_folder, output_folder=output_folder)
+
             if resource == 'MeSH':
                 if debug:
                     print("Parsing MeSH mappings")
@@ -708,6 +733,39 @@ def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_
                 input_folder = os.path.join(data_folder, 'Transcription_Factor_Dependence')
                 output_folder = os.path.join(mapping_folder, 'Transcription_Factor_Dependence')
                 prepare_tfd_mappings(input_folder=input_folder,output_folder=output_folder)
+
+def prepare_go_mappings(input_folder = '../data/GO/', output_folder = '../parsed_mappings/GO/'):
+    goa_file = os.path.join(input_folder, 'goa_human.gaf')
+    go_basic_file = os.path.join(input_folder,'go-basic.obo')
+
+    protein2go, go2protein = map_protein2go_ids(goa_file=goa_file, output_folder=output_folder)
+
+    # GO Term information
+    go_dict = get_go_term_information(gobasic_file=go_basic_file)
+
+    # # GO Term ID -> GO Term Name
+    # go_id2term = map_go_id2term(go_dict)
+    #
+    # # Separate GO terms into 3 lists for each type
+    # go_bio_proc, go_cell_comp, go_mol_func = separate_go_terms_into_three_lists_for_each_tree(go_dict)
+    #
+    # # Cellular Compartment Names
+    # cell_comp_name = list()
+    # cell_comp_id2name = dict()
+    #
+    # for ID in go_cell_comp:
+    #     name = go_id2term[ID]
+    #     cell_comp_name.append(name)
+    #     cell_comp_id2name[ID] = name
+    #
+    # # GO Term Cellular Compartments -> Protein
+    # go_term_cell_comp2protein, protein2go_term_cell_comp = get_protein2go_term(protein2go, cell_comp_id2name)
+
+    # extract go hierarchy (is_a and part_of)
+    go_id_to_links = extract_go_hierarchy(go_dict)
+
+    json.dump(go_id_to_links, open(os.path.join(output_folder,"go_id_to_links.json"),'w'))
+    # json.dump(go_term_cell_comp2protein, open(os.path.join(output_folder,"go_term_cell_comp2protein.json"),'w')) # Don't think we need this
 
 
 def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, debug=False):

@@ -11,30 +11,6 @@ import numpy as np
 import os
 
 
-#TODO move to prepare_kg_data.py or utils
-def extract_go_hierarchy(go_dict):
-    go_id_to_links = {}
-
-    for go_term, go_fields in go_dict.items():
-
-        parents = []
-        if 'is_a' in go_fields:
-            parents += [p.split(" ! ")[0] for p in go_fields['is_a']]
-        if 'relationship' in go_fields:
-            parents += [p.split(" ! ")[0].strip('part_of ') for p in go_fields['relationship'] if 'part_of' in p]
-
-        # add to dict
-        for g in [go_term] + parents:
-            if g not in go_id_to_links:
-                go_id_to_links[g] = dict()
-                go_id_to_links[g]['parents'] = []
-                go_id_to_links[g]['children'] = []
-        for p in parents:
-            go_id_to_links[p]['children'] += [go_term]
-            go_id_to_links[go_term]['parents'] += [p]
-    return go_id_to_links
-
-
 def load_mappings(resource_to_mapping_files, mappings_folder="./parsed_mappings/"):
 
     resource_to_mappings = {resource: [] for resource in resource_to_mapping_files.keys()}
@@ -55,41 +31,6 @@ def load_mappings(resource_to_mapping_files, mappings_folder="./parsed_mappings/
             resource_to_mappings[resource] += [mapping]
 
     return resource_to_mappings
-
-#
-# def load_mappings(output_folder): #TODO move GO stuff to prepare_knowledge_base_data.py
-#     # TODO have these passed in
-#     global go_term_cell_comp2protein
-#     global go_id_to_links
-#     global go2protein
-#     data_folder = "../data/"
-#
-#     '''Protein to GO'''
-#     protein2go, go2protein = map_protein2go_ids(goa_file = '../data/GO/goa_human.gaf',output_folder=data_folder)
-#
-#     # GO Term information
-#     go_dict = get_go_term_information(output_folder=data_folder)
-#
-#     # GO Term ID -> GO Term Name
-#     go_id2term = map_go_id2term(go_dict)
-#
-#     # Separate GO terms into 3 lists for each type
-#     go_bio_proc, go_cell_comp, go_mol_func = separate_go_terms_into_three_lists_for_each_tree(go_dict)
-#
-#     # Cellular Compartment Names
-#     cell_comp_name = list()
-#     cell_comp_id2name = dict()
-#
-#     for ID in go_cell_comp:
-#         name = go_id2term[ID]
-#         cell_comp_name.append(name)
-#         cell_comp_id2name[ID] = name
-#
-#     # GO Term Cellular Compartments -> Protein
-#     go_term_cell_comp2protein, protein2go_term_cell_comp = get_protein2go_term(protein2go, cell_comp_id2name)
-#
-#     # extract go hierarchy (is_a and part_of)
-#     go_id_to_links = extract_go_hierarchy(go_dict)
 
 
 def get_interacting_partners(proteins, k=1, score_thresh=0.975,
@@ -289,7 +230,7 @@ def prepare_resource_mappings(include_ppi, include_pathways, include_transcripti
         resources_to_include += ['TFD']
 
     # all mappings
-    resource_to_mapping_files = {'GO':['go_id.json','go_id_to_links.json','go2protein.json'],
+    resource_to_mapping_files = {'GO':['go_id_to_links.json','go2protein.json'],
                             'Reactome':['protein2pathway.json'],
                             'TFD':['all_entrez2uniprot.json','all_uniprot2entrez.json','id2synonyms_not_case_varied.json','gene_name_2_protein_id.json']#TODO
                             }
@@ -341,7 +282,7 @@ def prepare_subcellular_compartment_proteins(parameters,
         print("%d proteins added with common pathways" % len(pathway_proteins))
     if include_transcription_factor_dependence:
         protein_ids_2_gene_ids,gene_ids_2_protein_ids,protein_id2syn,gene_name_2_protein_id,tf_gene_name_2_target_gene_name = resource_mappings['TFD']
-        tfd_proteins = get_transcription_factor_dependence_partners(organelle_proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,protein_id2syn,gene_name_2_protein_id,tf_gene_name_2_target_gene_name)
+        tfd_proteins = get_transcription_factor_dependence_partners(organelle_proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name)
         proteins_of_interest = proteins_of_interest.union(set(tfd_proteins))
         print("%d proteins from transcription factor dependence" % len(tfd_proteins))
 
@@ -358,7 +299,7 @@ def prepare_subcellular_compartment_proteins(parameters,
             print("Written to file %s"%out_organelle_list_file)
     return proteins_of_interest
 
-def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,protein_id2syn,gene_name_2_protein_id,tf_gene_name_2_target_gene_name):
+def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name):
 
     '''Dictionary'''
     gene_name_2_gene_id = dict()
@@ -465,12 +406,6 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
     print("Added proteins: %d"%(len(added_proteins)))
     return added_proteins
 
-'''
-required mappings:
-- go: go_id, go_id_to_links, go2protein
-
-'''
-
 parameters = {'go-term': 'GO:0005739',
               'include_ppi': True,
               'ppi_k': 1, 'ppi_score_thresh': 0.99,
@@ -480,7 +415,6 @@ parameters = {'go-term': 'GO:0005739',
               'include_transcription_factor_dependence': False}
 
 root_directory = '/caseolap_lift_shared_folder'
-#data_folder = os.path.join(root_directory,'data')
 mapping_folder = os.path.join(root_directory,'parsed_mappings')
 output_folder = os.path.join(root_directory,'output')
 if not os.path.exists(output_folder):

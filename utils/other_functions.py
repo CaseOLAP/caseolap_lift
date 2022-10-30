@@ -59,11 +59,11 @@ def map_top_proteins2go(protein_DIS, protein2go, go_tree_of_interest, go_id2term
     
     return protein2go_DIS, go2protein_DIS, go_ids_DIS, go_terms_DIS
 
-def get_go_term_information(output_folder="./data/"):
+def get_go_term_information(gobasic_file = '../data/GO/go-basic.obo'):
     # Convert GO obo file to dict
     ID = ''
     go_dict = dict()
-    for line in open(os.path.join(output_folder,'go-basic.obo')):
+    for line in open(gobasic_file):
         if line.startswith('id: '):
             ID = line.split('id: ')[1].strip('\n')
             continue
