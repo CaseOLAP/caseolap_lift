@@ -10,10 +10,11 @@ from caseolap._01_download import *
 Parameters
 '''
 # Input
-data_dir = './'
-logFilePath = './log/download_log.txt'
-download_config_file_path = './config/download_config.json'
-ftp_config_file_path = './config/ftp_config.json'
+root_dir = '/caseolap_lift_shared_folder/'
+data_dir = os.path.join(root_dir,'data')
+logFilePath = os.path.join(root_dir,'log/download_log.txt')
+download_config_file_path = os.path.join(root_dir,'config/download_config.json')
+ftp_config_file_path = os.path.join(root_dir,'config/ftp_config.json')
 baseline_dir = os.path.join(data_dir, 'ftp.ncbi.nlm.nih.gov/pubmed/baseline/')
 update_files_dir = os.path.join(data_dir,'ftp.ncbi.nlm.nih.gov/pubmed/updatefiles/')
 
