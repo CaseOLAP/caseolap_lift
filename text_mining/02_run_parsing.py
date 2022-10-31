@@ -3,7 +3,10 @@ The purpose of this file is to parse the downloaded PubMed documents,
 saving their information into a dictionary.
 '''
 import json, sys, os, time, traceback
-from caseolap._02_parsing import *
+
+# setting path
+sys.path.append('..')
+from text_mining.caseolap._02_parsing import *
 from lxml import etree
 
 
@@ -12,14 +15,16 @@ from lxml import etree
 Parameters
 '''
 # Input
-baseline_files = './ftp.ncbi.nlm.nih.gov/pubmed/baseline'  # Documents prior to this year
-update_files = './ftp.ncbi.nlm.nih.gov/pubmed/updatefiles' # Documents from this year
-parsing_config_file = 'config/parsing_config.json'
+root_dir = '/caseolap_lift_shared_folder/'
+data_dir = os.path.join(root_dir,'data')
+baseline_files = os.path.join(data_dir,'ftp.ncbi.nlm.nih.gov/pubmed/baseline' ) # Documents prior to this year
+update_files = os.path.join(data_dir,'ftp.ncbi.nlm.nih.gov/pubmed/updatefiles') # Documents from this year
+parsing_config_file = os.path.join(root_dir,'config/parsing_config.json')
 
 # Output 
-pubmed_path = './data/pubmed.json'     # The parsed PubMed documents (dictionary)
-filestat_path = './data/filestat.json' # Unzipped PubMed download file name : #PMIDs
-logfile_path = './log/parsing_log.txt' # Logs progress on parsing
+pubmed_path = os.path.join(data_dir,'pubmed.json')     # The parsed PubMed documents (dictionary)
+filestat_path = os.path.join(data_dir,'filestat.json') # Unzipped PubMed download file name : #PMIDs
+logfile_path = os.path.join(root_dir,'log/parsing_log.txt') # Logs progress on parsing
 
 
 
