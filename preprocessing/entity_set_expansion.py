@@ -201,11 +201,13 @@ def get_pathway_partners(proteins, pathway2protein, count_thresh=sys.maxsize, pr
 
 
 #TODO make it accept multiple GO ID's
-def get_proteins_from_go(go_id, go_id_to_links, go2protein):
+def get_proteins_from_go(go_ids, go_id_to_links, go2protein):
 
     # go through the hierarchy and get proteins
-
-    go_queue = [go_id]
+    if type(go_ids) == list:
+        go_queue = go_ids
+    else:
+        go_queue = [go_ids]
     extracted_proteins = set()
     while len(go_queue) > 0:
         g = go_queue.pop()
@@ -219,90 +221,9 @@ def get_proteins_from_go(go_id, go_id_to_links, go2protein):
     return extracted_proteins
 
 
-def prepare_resource_mappings(include_ppi, include_pathways, include_transcription_factor_dependence):
-    # Right now, PPI does not use any pre-existing mappings
-    if include_ppi:
-        pass
-
-    resources_to_include = ['GO'] # requires GO by default
-    # only add mappings if they are flagged as True
-    if include_pathways:
-        resources_to_include += ['Reactome']
-    if include_transcription_factor_dependence:
-        resources_to_include += ['Transcription_Factor_Dependence']
-
-    # all mappings
-    resource_to_mapping_files = {'GO':['go_id_to_links.json','go2protein.json'],
-                            'Reactome':['pathway2protein.json'],
-                            'Transcription_Factor_Dependence':['all_entrez2uniprot.json','all_uniprot2entrez.json','gene_name_2_protein_id.json','tf_gene_name_2_target_gene_name.json']#TODO
-                            }
-    return {resource: mapping_files for resource,mapping_files in resource_to_mapping_files.items() if resource in resources_to_include}
-
-
-def prepare_subcellular_compartment_proteins(parameters,
-                                             output_folder="../output",
-                                             mapping_folder='../parsed_mappings',
-                                             debug=False):
-    # parse parameters
-    go_term = parameters['go-term']
-    include_ppi = parameters['include_ppi']
-    ppi_k = parameters['ppi_k']
-    ppi_score_thresh = parameters['ppi_score_thresh']
-    include_pathways = parameters['include_pathways']
-    pw_count_thresh = parameters['pw_count_thresh']
-    pw_proportion_thresh = parameters['pw_proportion_thresh']
-    include_transcription_factor_dependence = parameters['include_transcription_factor_dependence']
-
-    # load data
-    resource_mapping_files = prepare_resource_mappings(include_ppi, include_pathways, include_transcription_factor_dependence)
-    print(mapping_folder)
-    resource_mappings = load_mappings(resource_mapping_files, mappings_folder=mapping_folder)
-    go_id_to_links, go2protein = resource_mappings['GO']
-
-    # Get organelle-specific proteins
-    organelle_proteins = get_proteins_from_go(go_term, go_id_to_links, go2protein)
-
-    print("%d proteins relevant to go term %s" % (len(organelle_proteins), go_term))
-    proteins_of_interest = set(organelle_proteins)
-    if include_ppi:
-        ppi_proteins = get_interacting_partners(organelle_proteins,
-                                                k=ppi_k,
-                                                score_thresh=ppi_score_thresh,
-                                                output_folder=output_folder,
-                                                debug=debug)
-        print(type(proteins_of_interest))
-        print(type(ppi_proteins))
-        proteins_of_interest = proteins_of_interest.union(set(ppi_proteins))
-        print("%d proteins added from protein-protein interaction" % len(ppi_proteins))
-    if include_pathways:
-        pathway2protein = resource_mappings['Reactome'][0]
-        pathway_proteins = get_pathway_partners(organelle_proteins, pathway2protein,
-                                                count_thresh=pw_count_thresh,
-                                                proportion_thresh=pw_proportion_thresh,
-                                                debug=debug)
-        proteins_of_interest = proteins_of_interest.union(set(pathway_proteins))
-        print("%d proteins added with common pathways" % len(pathway_proteins))
-    if include_transcription_factor_dependence:
-        gene_ids_2_protein_ids,protein_ids_2_gene_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name = resource_mappings['Transcription_Factor_Dependence']
-        tfd_proteins = get_transcription_factor_dependence_partners(organelle_proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name)
-        proteins_of_interest = proteins_of_interest.union(set(tfd_proteins))
-        print("%d proteins from transcription factor dependence" % len(tfd_proteins))
-
-    print("In total, %d proteins of interest assembled" % (len(proteins_of_interest)))
-
-    if output_folder:
-        out_protein_list_file = os.path.join(output_folder,"proteins_of_interest.txt")
-        with open(out_protein_list_file,"w") as out_file:
-            out_file.write("\n".join(proteins_of_interest))
-            print("Written to file %s"%out_protein_list_file)
-        out_organelle_list_file = os.path.join(output_folder,"core_proteins.txt")
-        with open(out_organelle_list_file,"w") as out_file:
-            out_file.write("\n".join(organelle_proteins))
-            print("Written to file %s"%out_organelle_list_file)
-    return proteins_of_interest
-
-def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name, output_folder = "../output/kg"):
-
+def get_transcription_factor_dependence_partners(proteins, protein_ids_2_gene_ids, gene_ids_2_protein_ids,
+                                                 gene_name_2_protein_id, tf_gene_name_2_target_gene_name,
+                                                 output_folder="../output/kg", debug=False):
     '''Dictionary'''
     gene_name_2_gene_id = dict()
 
@@ -328,7 +249,6 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
             multiple_gene_ids_per_gene_name.add(k)
         else:
             one_gene_id_per_gene_name.add(k)
-
 
     '''Remove unclear mappings'''
     for gene_name, gene_ids in gene_ids_2_protein_ids.copy().items():
@@ -357,31 +277,31 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
     # print("asdf")
 
     for tf_gene_name, target_gene_names in tf_gene_name_2_target_gene_name.items():
-    
+
         # TF Gene Name -is- TF Protein ID
         try:
             tf_protein_ids = gene_name_2_protein_id[tf_gene_name]
             tf_protein_ids = list(tf_protein_ids)
             # print(len(tf_protein_ids))
         except:
-            #print("%s gene not found!"%(tf_gene_name))
+            # print("%s gene not found!"%(tf_gene_name))
             continue
         # Target Gene Names -is- Target Gene ID
-        #print([(k,v) for k,v in gene_name_2_gene_id.items()][:10])
-        #print(target_gene_names[:10])
+        # print([(k,v) for k,v in gene_name_2_gene_id.items()][:10])
+        # print(target_gene_names[:10])
         for target_gene_name in target_gene_names:
             try:
-                #print(target_gene_name in gene_name_2_gene_id)
+                # print(target_gene_name in gene_name_2_gene_id)
                 target_gene_id = gene_name_2_gene_id[target_gene_name]
- #               print(target_gene_id)
+                #               print(target_gene_id)
                 target_gene_id = list(target_gene_id)[0]
                 for tf_protein_id in tf_protein_ids:
                     tf_protein_id_2_target_gene_id.setdefault(tf_protein_id, set()).add(target_gene_id)
-  #              print(len(tf_protein_ids))
+            #              print(len(tf_protein_ids))
             except:
-                continue    
-            
-            # Protein ID's Gene -is targeted by-> TF Gene 
+                continue
+
+                # Protein ID's Gene -is targeted by-> TF Gene
             try:
                 target_gene_protein_ids = gene_ids_2_protein_ids[target_gene_id]
                 for target_gene_protein_id in target_gene_protein_ids:
@@ -391,19 +311,21 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
             except:
                 continue
 
-
     ''' Output the Protein-Gene relationships'''
     tf_protein_id_2_target_gene_id = switch_dictset_to_dictlist(tf_protein_id_2_target_gene_id)
     target_protein_id_2_tf_protein_id = switch_dictset_to_dictlist(target_protein_id_2_tf_protein_id)
     tf_protein_id_2_target_protein_id = switch_dictset_to_dictlist(tf_protein_id_2_target_protein_id)
 
     # TODO move to prepare_kg_data.py or utils
-    json.dump(tf_protein_id_2_target_gene_id, open(os.path.join(output_folder,"tf_protein_id_2_target_gene_id.json"), 'w'))
-    json.dump(target_protein_id_2_tf_protein_id, open(os.path.join(output_folder,"target_protein_id_2_tf_protein_id.json"), 'w'))
-    json.dump(tf_protein_id_2_target_protein_id, open(os.path.join(output_folder,"tf_protein_id_2_target_protein_id.json"), 'w'))
+    json.dump(tf_protein_id_2_target_gene_id,
+              open(os.path.join(output_folder, "tf_protein_id_2_target_gene_id.json"), 'w'))
+    json.dump(target_protein_id_2_tf_protein_id,
+              open(os.path.join(output_folder, "target_protein_id_2_tf_protein_id.json"), 'w'))
+    json.dump(tf_protein_id_2_target_protein_id,
+              open(os.path.join(output_folder, "tf_protein_id_2_target_protein_id.json"), 'w'))
     # get tf dependence proteins
     proteins_of_interest = set()
-    
+
     # query from_list:
     for p, prots in target_protein_id_2_tf_protein_id.items():
         if p in proteins:
@@ -412,26 +334,119 @@ def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids
     for p, prots in tf_protein_id_2_target_protein_id.items():
         if p in proteins:
             proteins_of_interest = proteins_of_interest.union(prots)
-    
+
     added_proteins = proteins_of_interest.difference(proteins)
-    print("Added proteins: %d"%(len(added_proteins)))
+    print("Added proteins: %d" % (len(added_proteins)))
     return added_proteins
 
-parameters = {'go-term': 'GO:0005739',
-              'include_ppi': True,
-              'ppi_k': 1, 'ppi_score_thresh': 0.99,
-              'include_pathways': True,
-              'pw_count_thresh': 4,
-              'pw_proportion_thresh': 0.50,
-              'include_transcription_factor_dependence': True}
 
-root_directory = '/caseolap_lift_shared_folder'
-root_directory = '../'
-mapping_folder = os.path.join(root_directory,'parsed_mappings')
-output_folder = os.path.join(root_directory,'output')
-if not os.path.exists(output_folder):
-   os.makedirs(output_folder)
-   kg_output_folder = os.path.join(output_folder,"kg")
-   print(kg_output_folder)
-   os.makedirs(kg_output_folder)
-proteins = prepare_subcellular_compartment_proteins(parameters, mapping_folder=mapping_folder, output_folder=output_folder, debug=False)
+
+def prepare_resource_mappings(include_ppi, include_pathways, include_transcription_factor_dependence):
+    # Right now, PPI does not use any pre-existing mappings
+    if include_ppi:
+        pass
+
+    resources_to_include = ['GO'] # requires GO by default
+    # only add mappings if they are flagged as True
+    if include_pathways:
+        resources_to_include += ['Reactome']
+    if include_transcription_factor_dependence:
+        resources_to_include += ['Transcription_Factor_Dependence']
+
+    # all mappings
+    resource_to_mapping_files = {'GO':['go_id_to_links.json','go2protein.json'],
+                            'Reactome':['pathway2protein.json'],
+                            'Transcription_Factor_Dependence':['all_entrez2uniprot.json','all_uniprot2entrez.json','gene_name_2_protein_id.json','tf_gene_name_2_target_gene_name.json']#TODO
+                            }
+    return {resource: mapping_files for resource,mapping_files in resource_to_mapping_files.items() if resource in resources_to_include}
+
+
+
+def prepare_subcellular_compartment_proteins(parameters,
+                                             output_folder="../output",
+                                             mapping_folder='../parsed_mappings',
+                                             debug=False):
+    # parse parameters
+    go_terms = parameters['go-term']
+    include_ppi = parameters['include_ppi']
+    ppi_k = parameters['ppi_k']
+    ppi_score_thresh = parameters['ppi_score_thresh']
+    include_pathways = parameters['include_pathways']
+    pw_count_thresh = parameters['pw_count_thresh']
+    pw_proportion_thresh = parameters['pw_proportion_thresh']
+    include_transcription_factor_dependence = parameters['include_transcription_factor_dependence']
+
+    # load data
+    resource_mapping_files = prepare_resource_mappings(include_ppi, include_pathways, include_transcription_factor_dependence)
+    print(mapping_folder)
+    resource_mappings = load_mappings(resource_mapping_files, mappings_folder=mapping_folder)
+    go_id_to_links, go2protein = resource_mappings['GO']
+
+    # Get organelle-specific proteins
+    organelle_proteins = get_proteins_from_go(go_terms, go_id_to_links, go2protein)
+
+    print("%d proteins relevant to go term %s" % (len(organelle_proteins), go_terms))
+    proteins_of_interest = set(organelle_proteins)
+    if include_ppi:
+        ppi_proteins = get_interacting_partners(organelle_proteins,
+                                                k=ppi_k,
+                                                score_thresh=ppi_score_thresh,
+                                                output_folder=output_folder,
+                                                debug=debug)
+        print(type(proteins_of_interest))
+        print(type(ppi_proteins))
+        proteins_of_interest = proteins_of_interest.union(set(ppi_proteins))
+        print("%d proteins added from protein-protein interaction" % len(ppi_proteins))
+    if include_pathways:
+        pathway2protein = resource_mappings['Reactome'][0]
+        pathway_proteins = get_pathway_partners(organelle_proteins, pathway2protein,
+                                                count_thresh=pw_count_thresh,
+                                                proportion_thresh=pw_proportion_thresh,
+                                                output_folder=output_folder,
+                                                debug=debug)
+        proteins_of_interest = proteins_of_interest.union(set(pathway_proteins))
+        print("%d proteins added with common pathways" % len(pathway_proteins))
+    if include_transcription_factor_dependence:
+        gene_ids_2_protein_ids,protein_ids_2_gene_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name = resource_mappings['Transcription_Factor_Dependence']
+        tfd_proteins = get_transcription_factor_dependence_partners(organelle_proteins,
+                                                                    protein_ids_2_gene_ids,
+                                                                    gene_ids_2_protein_ids,
+                                                                    gene_name_2_protein_id,
+                                                                    tf_gene_name_2_target_gene_name,
+                                                                    output_folder = output_folder,
+                                                                    debug = debug)
+        proteins_of_interest = proteins_of_interest.union(set(tfd_proteins))
+        print("%d proteins from transcription factor dependence" % len(tfd_proteins))
+
+    print("In total, %d proteins of interest assembled" % (len(proteins_of_interest)))
+
+    if output_folder:
+        out_protein_list_file = os.path.join(output_folder,"proteins_of_interest.txt")
+        with open(out_protein_list_file,"w") as out_file:
+            out_file.write("\n".join(proteins_of_interest))
+            print("Written to file %s"%out_protein_list_file)
+        out_organelle_list_file = os.path.join(output_folder,"core_proteins.txt")
+        with open(out_organelle_list_file,"w") as out_file:
+            out_file.write("\n".join(organelle_proteins))
+            print("Written to file %s"%out_organelle_list_file)
+    return proteins_of_interest
+
+
+# parameters = {'go-term': 'GO:0005739',
+#               'include_ppi': True,
+#               'ppi_k': 1, 'ppi_score_thresh': 0.99,
+#               'include_pathways': True,
+#               'pw_count_thresh': 4,
+#               'pw_proportion_thresh': 0.50,
+#               'include_transcription_factor_dependence': True}
+#
+# root_directory = '/caseolap_lift_shared_folder'
+# root_directory = '../'
+# mapping_folder = os.path.join(root_directory,'parsed_mappings')
+# output_folder = os.path.join(root_directory,'output')
+# if not os.path.exists(output_folder):
+#    os.makedirs(output_folder)
+#    kg_output_folder = os.path.join(output_folder,"kg")
+#    print(kg_output_folder)
+#    os.makedirs(kg_output_folder)
+# proteins = prepare_subcellular_compartment_proteins(parameters, mapping_folder=mapping_folder, output_folder=output_folder, debug=False)
