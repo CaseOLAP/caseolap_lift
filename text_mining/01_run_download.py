@@ -3,7 +3,11 @@ The purpose of this file is to download the zipped files containing
 the PubMed publications (i.e. documents). These will be mined later.
 '''
 import os, json, sys
-from caseolap._01_download import *
+
+# setting path
+sys.path.append('..')
+
+from text_mining.caseolap._01_download import *
 
 
 '''

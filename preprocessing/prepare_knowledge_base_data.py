@@ -839,7 +839,8 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
             sys.exit(1)
     if debug:
         print("Parsing data phase completed.")
-    return
+
+    return True
 
 
 root_folder = '/caseolap_lift_shared_folder'
@@ -848,7 +849,7 @@ root_folder = '/caseolap_lift_shared_folder'
 data_folder=os.path.join(root_folder,'data')
 mapping_folder=os.path.join(root_folder,'parsed_mappings')
 
-prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)
+# prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)
 
 ## Windows UniProt API debugging below.
 # ''' Get results of job '''

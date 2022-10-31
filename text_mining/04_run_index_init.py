@@ -12,6 +12,7 @@ from elasticsearch import Elasticsearch
 Parameters
 '''
 # Index parameters
+root_dir = '/caseolap_lift_shared_folder/'
 index_name = 'pubmed_lift'      # Index name (match with 05 index populate file)
 type_name = 'pubmed_meta_lift'  # Index type name (match with 05 index populate file)
 number_shards = 1          # Set to 1 if no cluster
@@ -19,7 +20,7 @@ number_replicas = 0
 case_sensitive = True   # Index the text as case sensitive (True) or lower case (False)
 
 # Input file
-index_init_config_file = './config/index_init_config.json'
+index_init_config_file = os.path.join(root_dir,'config/index_init_config.json')
 
 
 '''

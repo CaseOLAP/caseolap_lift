@@ -1,20 +1,26 @@
 '''
 The purpose of this file is to map MeSH Terms (metadata) to PMIDs
 '''
-from caseolap._03_mesh2pmid import *
 
+# setting path
+sys.path.append('..')
+
+from text_mining.caseolap._03_mesh2pmid import *
+import os
 
 
 '''
 Parameters
 '''
 ### Input
-parsed_data_inputfile = "./data/pubmed.json"
+root_dir = '/caseolap_lift_shared_folder/'
+data_dir = os.path.join(root_dir,'data')
+parsed_data_inputfile = os.path.join(data_dir,"pubmed.json")
 
 ### Output 
-mesh2pmid_outputfile = "./data/mesh2pmid.json"    # {"MeSH Term":[PMID1,...], ...}
-mesh2pmid_statfile = "./data/mesh2pmid_stat.json" # {"MeSH Term": #PMIDs, ...}
-logFilePath = "./log/mesh2pmid_log.txt"           # Logs mapping progress
+mesh2pmid_outputfile = os.path.join(data_dir,"mesh2pmid.json" )   # {"MeSH Term":[PMID1,...], ...}
+mesh2pmid_statfile = os.path.join(data_dir,"mesh2pmid_stat.json") # {"MeSH Term": #PMIDs, ...}
+logFilePath = os.path.join(root_dir,'log/mesh2pmid_log.txt')           # Logs mapping progress
 
 
 
