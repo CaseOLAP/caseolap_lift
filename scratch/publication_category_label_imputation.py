@@ -1,5 +1,8 @@
 import requests as req, json, xml.etree.ElementTree as ET, itertools
-from biomedkg_utils import switch_dictset_to_dictlist
+import os
+import sys
+sys.path.append('..')
+from utils.biomedkg_utils import switch_dictset_to_dictlist
 from elasticsearch import Elasticsearch
 from multiprocessing import cpu_count, Process
 
@@ -32,16 +35,18 @@ def es_iterate_all_documents(es, index, pagesize=250, scroll_timeout="1m", **kwa
         yield from (hit['_source'] for hit in hits)
 
 
+'''
+'meshtree2meshname.json', 'edges_meshtree-IS-meshid_disease.csv',
+                                'meshterm-IS-meshid.json','edges_meshtree_to_meshtree.csv'
+                                '''
 
-
-def map_disease_mesh_name_to_id():
+def map_disease_mesh_name_to_id(mesh_desc_file = '../parsed_mappings/MeSH/desc2022.xml', output_folder='../parsed_mappings/MeSH'):
     '''
     FUNCTION:
     - Map the disease MeSH names/terms to the
       MeSH IDs.
     '''
-    ! wget -N -P input/ https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xmlmesh/desc2022.xml
-    tree = ET.parse('input/desc2022.xml')
+    tree = ET.parse(mesh_desc_file)
     root = tree.getroot()   
     
     name2id = dict()
@@ -67,24 +72,25 @@ def map_disease_mesh_name_to_id():
             continue        
 
     name2id = switch_dictset_to_dictlist(name2id)
-    json.dump(name2id, open('data/name2id.json','w'))
+    json.dump(name2id, open(os.path.join(output_folder,'name2id.json'),'w'))
 
 
 
-def map_categories2terms():
+def map_categories2terms(meshterms_per_cat_file = '../parsed_mappings/MeSH/meshterms_per_cat.json',
+                         category_names_file = '../config/textcube_config.json'):
     '''
     FUNCTION:
     - Map disease categories -> MeSH terms
     '''
-    terms_lol = json.load(open('data/meshterms_per_cat.json'))
-    category_names = json.load(open('config/textcube_config.json'))
+    terms_lol = json.load(open(meshterms_per_cat_file,'r'))
+    category_names = json.load(open(category_names_file,'r'))
     category2terms = dict()
     for category_name,term_list in zip(category_names, terms_lol):
         category2terms[category_name] = term_list
         
     return category2terms
 
-def get_mesh_synonyms_api(category2terms, name2id):
+def get_mesh_synonyms_api(category2terms, name2id,output_folder = '../parsed_mappings/MeSH/'):
     '''
     FUNCTION:
     - Get MeSH synonyms via API
@@ -107,12 +113,12 @@ def get_mesh_synonyms_api(category2terms, name2id):
                 category2synonyms.setdefault(category, set()).add(synonym)
       
     category2synonyms = switch_dictset_to_dictlist(category2synonyms)
-    json.dump(category2synonyms, open('data/category2synonyms.json','w'))
+    json.dump(category2synonyms, open(os.path.join(output_folder,'category2synonyms.json','w')))
                 
     return category2synonyms
 
 
-def map_category_to_permuted_mesh_synonyms(category2synonyms):
+def map_category_to_permuted_mesh_synonyms(category2synonyms,output_folder='../parsed_mappings/MeSH/'):
     '''
     FUNCTION:
     - permute the MeSH Synonyms because sometimes they're 
@@ -134,8 +140,8 @@ def map_category_to_permuted_mesh_synonyms(category2synonyms):
     category2permuted_synonyms = switch_dictset_to_dictlist(category2permuted_synonyms)
     permuted_synonyms2category = switch_dictset_to_dictlist(permuted_synonyms2category)
 
-    json.dump(category2permuted_synonyms, open('data/category2permuted_synonyms.json','w'))
-    json.dump(permuted_synonyms2category, open('data/permuted_synonyms2category.json','w'))
+    json.dump(category2permuted_synonyms, open(os.path.join(output_folder,'category2permuted_synonyms.json'),'w'))
+    json.dump(permuted_synonyms2category, open(os.path.join(output_folder,'permuted_synonyms2category.json'),'w'))
     
     return category2permuted_synonyms, permuted_synonyms2category
 
@@ -162,7 +168,7 @@ def permute_mesh_synonyms(mesh_synonyms):
     return temp_mesh_synonyms
 
 
-def get_relevant_categorized_pmids():
+def get_relevant_categorized_pmids(list_of_list_of_pmids_file = '../data/textcube_category2pmid.json'):
     '''
     FUNCTION:
     - Get the PMIDs from the textcube, i.e., the PubMed articles
@@ -173,7 +179,7 @@ def get_relevant_categorized_pmids():
       when they were annotating with MeSH terms.
     '''
     # PMIDs to label
-    list_of_list_of_pmids = json.load(open('data/textcube_category2pmid.json'))
+    list_of_list_of_pmids = json.load(open(list_of_list_of_pmids_file))
     relevant_pmids = set()
     for pmid_list in list_of_list_of_pmids:
         relevant_pmids = relevant_pmids.union(set(pmid_list))
@@ -241,7 +247,8 @@ def ds_label_matching(batch_id, relevant_pmid_batch,
                       label_labeled_only,
                       label_all,
                       filter_list, 
-                      stop_at_this_many_pmids):
+                      stop_at_this_many_pmids,
+                      output_folder = '../parsed_mappings/'):
     '''
     FUNCTION:
     - Using MeSH term synonyms, label a document with a MeSH term if the 
@@ -252,9 +259,9 @@ def ds_label_matching(batch_id, relevant_pmid_batch,
     - temp_outfile: temporary output file of PMID | MeSH Term
     '''
     es = Elasticsearch()
-    temp_outfile = 'data/temp_labeling'+str(batch_id)+'.txt'
+    temp_outfile = os.path.join(output_folder,'temp_labeling'+str(batch_id)+'.txt')
     procs = cpu_count()
-    category2permuted_synonyms = json.load(open('data/category2permuted_synonyms.json'))
+    category2permuted_synonyms = json.load(open(os.path.join(output_folder,'category2permuted_synonyms.json'),'r'))
     
     with open(temp_outfile,'w') as fout, open(temp_outfile[:-4]+'synonym'+'.txt','w') as fout1:
         
@@ -371,7 +378,7 @@ def multiprocess_ds_label_matching(pmids, index_name, index_type,
     print("Running jobs...")
     jobs = []
     for b_id, batch in enumerate(batches):
-        jobs.append(Process(target = the_function, \
+        jobs.append(Process(target = the_function,
                             args = [b_id, batch, 
                                     index_name, index_type, 
                                     label_unlabeled_only,
@@ -386,7 +393,7 @@ def multiprocess_ds_label_matching(pmids, index_name, index_type,
     print('Done!')    
             
                 
-def merge_pmid2new_mesh_labels():
+def merge_pmid2new_mesh_labels(output_folder = '../parsed_mappings/'):
     '''
     FUNCTION:
     - Merges the separate files containing PMID|category_name
@@ -397,7 +404,7 @@ def merge_pmid2new_mesh_labels():
     procs = cpu_count()
 
     for batch_id in range(procs):
-        temp_outfile = 'data/temp_labeling'+str(batch_id)+'.txt'
+        temp_outfile = os.path.join(output_folder,'temp_labeling'+str(batch_id)+'.txt')
         with open(temp_outfile) as fin:
             for line in fin:
                 line = line.split('|')
@@ -526,47 +533,79 @@ def index_imputed_mesh_categories(index_name, index_type):
                   id = pmid,
                   doc_type = index_type,
                   doc = {'MeSH': mesh_terms})
-        
-        
-def remove_imputed_category_mesh_terms(pmid2imputed_category):
+
+
+
+def remove_imputed_category_mesh_terms(index_name,index_type,pmid2imputed_category):
     '''
     FUNCTION:
     - If you want to remove the imputed category names
       from the ElasticSearch index, undoing what you
-      did with index_imputed_mesh_categories(), you 
+      did with index_imputed_mesh_categories(), you
       can run this
     '''
-    
+
     es = Elasticsearch()
     for pmid, imputed_categories in pmid2imputed_category.items():
-        
+
         # Get current MeSH terms
-        entry = es.get(id = pmid, 
-                       index = index_name, 
-                       doc_type = index_type)
+        entry = es.get(id=pmid,
+                       index=index_name,
+                       doc_type=index_type)
         mesh_terms = entry['_source']['MeSH']
         mesh_terms = list(set(mesh_terms))
         for imputed_category in imputed_categories:
-            try: mesh_terms.remove(imputed_category)
-            except: continue
-        
+            try:
+                mesh_terms.remove(imputed_category)
+            except:
+                continue
+
         # Update each publication's index
-        es.update(index = index_name, 
-                  id = pmid,
-                  doc_type = index_type,
-                  doc = {'MeSH': mesh_terms})
+        es.update(index=index_name,
+                  id=pmid,
+                  doc_type=index_type,
+                  doc={'MeSH': mesh_terms})
+
+#
+# def remove_imputed_category_mesh_terms(pmid2imputed_category):
+#     '''
+#     FUNCTION:
+#     - If you want to remove the imputed category names
+#       from the ElasticSearch index, undoing what you
+#       did with index_imputed_mesh_categories(), you
+#       can run this
+#     '''
+#
+#     es = Elasticsearch()
+#     for pmid, imputed_categories in pmid2imputed_category.items():
+#
+#         # Get current MeSH terms
+#         entry = es.get(id = pmid,
+#                        index = index_name,
+#                        doc_type = index_type)
+#         mesh_terms = entry['_source']['MeSH']
+#         mesh_terms = list(set(mesh_terms))
+#         for imputed_category in imputed_categories:
+#             try: mesh_terms.remove(imputed_category)
+#             except: continue
+#
+#         # Update each publication's index
+#         es.update(index = index_name,
+#                   id = pmid,
+#                   doc_type = index_type,
+#                   doc = {'MeSH': mesh_terms})
         
         
-def update_textcube_files():
+def update_textcube_files(data_folder='../data/',config_folder='../config/',parsed_mapping_folder='../parsed_mappings'):
     '''
     FUNCTION:
     - Add category names to the considered MeSH Terms
     - Add pmid-category to pmid2category mapping files
     '''
-    meshterms_per_cat = json.load(open('data/meshterms_per_cat.json'))
+    meshterms_per_cat = json.load(open(os.path.join(data_folder,'/MeSH/meshterms_per_cat.json'),'r'))
     meshterms_per_cat = [set(meshlist) for meshlist in meshterms_per_cat]
 
-    category_names = json.load(open('config/textcube_config.json'))
+    category_names = json.load(open(os.path.join(config_folder,'/textcube_config.json'),'r'))
 
     for i in range(0,len(category_names)):
         meshterms_per_cat[i].add(category_names[i])
@@ -574,11 +613,11 @@ def update_textcube_files():
     json.dump(meshterms_per_cat, open('data/meshterms_per_cat.json','w'))
     
     
-    textcube_pmid2category = json.load(open('data/textcube_pmid2category.json'))
-    textcube_category2pmid = json.load(open('data/textcube_category2pmid.json'))
+    textcube_pmid2category = json.load(open(os.path.join(data_folder,'textcube_pmid2category.json'),'r'))
+    textcube_category2pmid = json.load(open(os.path.join(data_folder,'textcube_category2pmid.json'),'r'))
 
     ''' Update textcube_category2pmid '''
-    category_names = json.load(open('config/textcube_config.json'))
+    category_names = json.load(open(os.path.join(config_folder,'textcube_config.json'),'r'))
     category_name2num = {name:num for num,name in enumerate(category_names)}
 
     for pmid, imputed_categories in pmid2imputed_category.items():
@@ -596,8 +635,8 @@ def update_textcube_files():
         for pmid in pmid_list:
             new_textcube_pmid2category.append([pmid, cat_num])
 
-    json.dump(new_textcube_pmid2category, open('data/textcube_pmid2category.json','w'))
-    json.dump(textcube_category2pmid, open('data/textcube_category2pmid.json','w'))
+    json.dump(new_textcube_pmid2category, open(os.path.join(data_folder,'textcube_pmid2category.json','w')))
+    json.dump(textcube_category2pmid, open(os.path.join(data_folder,'textcube_category2pmid.json','w')))
     
     
 def get_relevant_all_categorized_pmids(index_name):
@@ -648,6 +687,12 @@ INDEX_TYPE = 'pubmed_meta_lift'
 STOP_AT_THIS_MANY_PMIDS = 999999999999999
 filter_words = ['heart', 'cardiac', 'cardiovascular', 'cardiopulmonary']
 
+root_directory = '/caseolap_lift_shared_folder'
+root_directory = '../'
+data_folder=os.path.join(root_directory,"data")
+config_folder=os.path.join(root_directory,"config")
+mapping_folder=os.path.join(root_directory,"parsed_mappings")
+
 
 
 '''Map MeSH ID - Name'''
@@ -659,8 +704,8 @@ map_disease_mesh_name_to_id()
 category2terms = map_categories2terms()
 
 # Category - MeSH Terms' Synonyms (including terms)
-name2id = json.load(open('data/name2id.json'))
-category2synonyms = get_mesh_synonyms_api(category2terms, name2id)
+name2id = json.load(open(os.path.join(data_folder,'/name2id.json'),'r'))
+category2synonyms = get_mesh_synonyms_api(category2terms, name2id) # TODO unsure
 
 # Category - permuted MeSH Terms' Synonyms
 category2permuted_synonyms, permuted_synonyms2category =  map_category_to_permuted_mesh_synonyms(category2synonyms)
@@ -669,7 +714,7 @@ category2permuted_synonyms, permuted_synonyms2category =  map_category_to_permut
 '''Get PMIDs'''
 # Get relevant PMIDs
 relevant_pmids = get_all_uncategorized_pmids('pubmed_lift')
-json.dump(relevant_pmids, open('data/all_uncategorized_pmids.json','w'))
+json.dump(relevant_pmids, open(os.path.join(data_folder,'all_uncategorized_pmids.json'),'w'))
 
 
 
@@ -690,11 +735,15 @@ multiprocess_ds_label_matching(pmids = relevant_pmids,
 pmid2imputed_category, pmid2imputed_mesh_synonym = merge_pmid2new_mesh_labels()
 
 # Export PMID-Category mappings to dictionaries
-json.dump(pmid2imputed_category, open('data/pmid2imputed_category.json','w'))
-json.dump(pmid2imputed_mesh_synonym, open('data/pmid2imputed_mesh_synonym.json','w'))
+json.dump(pmid2imputed_category, open(os.path.join(mapping_folder,'pmid2imputed_category.json'),'w'))
+json.dump(pmid2imputed_mesh_synonym, open(os.path.join(mapping_folder,'pmid2imputed_mesh_synonym.json'),'w'))
 
 # Index the imputed MeSH categories into their PMID entries
 index_imputed_mesh_categories(index_name=INDEX_NAME, index_type=INDEX_TYPE)
+print(len(pmid2imputed_category), 'PMIDs with imputed labels')
+
+# Optional: Remove the imputed mesh terms from the index
+#remove_imputed_category_mesh_terms(pmid2imputed_category)
 
 # Update the MeSH Terms Per Category file for the textcube
 update_meshterms_per_cat_file()
