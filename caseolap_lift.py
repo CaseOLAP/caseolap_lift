@@ -9,6 +9,7 @@ from preprocessing.prepare_knowledge_base_data import  download_data,prepare_kno
 import json
 from preprocessing.entity_set_expansion import prepare_subcellular_compartment_proteins
 
+
 def parse_abbreviations(input, num_categories, debug=False):
 
     abbreviations = []
@@ -31,20 +32,17 @@ def parse_abbreviations(input, num_categories, debug=False):
 
 
 def parse_diseases(diseases, valid_mesh_terms, debug=False):
-#     #check if the user input are all valid MeSH tree ids
+    # check if the user input are all valid MeSH tree ids
     if ".txt" in diseases:
         with open(diseases) as f:
             lines = f.readlines()
         for line in lines:
-            #change it to be from categories.txt not parameter.txt 
-            #there will be no disease category heading, jst straight dieases ids
+            # TODO change it to be from categories.txt not parameter.txt
+            # TODO there will be no disease category heading, jst straight dieases ids
             if line.startswith("Disease Category:"):
                     diseases = parse_diseases(line.split(":")[1], valid_mesh_terms)
     else:
-        #if diseases 
         res = []
-        #if the user does not give a text file
-        #else: 
         mesh_lists = diseases.split(" ")
         for mesh_list in mesh_lists:
             diseases = mesh_list.split(",")
@@ -57,22 +55,13 @@ def parse_diseases(diseases, valid_mesh_terms, debug=False):
                     if debug:
                         print("The MeSH term %s is invalid!"%disease)
                     raise Exception("Invalid MeSH term %s"%disease)
-                # url = 'https://id.nlm.nih.gov/mesh/lookup/details?descriptor=' + disease
-                # r = requests.get(url)
-                # # print(r)
-                # if r.status_code == 200:
-                #     print("The mesh term: " + disease)
-                #     pass
-                # else:
-                #     print("The wrong url is: " + url)
-                #     raise Exception("Invalid mesh ID")
+
             res.append(diseases)
         return res
 
 
 def parse_subcellular_component(components, valid_go_terms, debug=False):
-#     #check if user inputs are valid GO terms
-#http://api.geneontology.org/api/bioentity/function/GO:0006915
+    # check if user inputs are valid GO terms
     input_components = components.split(" ")
     res = []
     for component in input_components:
@@ -86,17 +75,8 @@ def parse_subcellular_component(components, valid_go_terms, debug=False):
                 print("The GO term %s is invalid!"%(component))
             raise Exception("Invalid GO term %s"%component)
 
-        # url = "http://api.geneontology.org/api/bioentity/function/" + component
-        # r = requests.head(url)
-        # #print()
-        # if r.status_code == 200:
-        #     res.append(component)
-        #     print("The GO cellular component: " + component)
-        #     pass
-        # else:
-        #     print("The wrong url is: " + url)
-        #     raise Exception("Invalid GO ID")
     return res
+
 
 def parse_protein_list(proteins):
 
@@ -129,6 +109,7 @@ def parse_protein_list(proteins):
                 raise Exception("Invalid UniProtKB accession %s"%protein)
         return res
 
+
 def parse_include_synonyms(synonyms):
     return synonyms.lower().startswith('y') or synonyms.lower().startswith('t')
 
@@ -138,6 +119,7 @@ def parse_output_folder(folder):
     output_file.parent.mkdir(exist_ok=True, parents=True)
     return folder
     # output_file.write_text("output")
+
 
 def load_mesh_terms(output_folder,debug=False):
     if debug:
@@ -172,11 +154,13 @@ def load_go_terms(output_folder, debug=False):
     print("%d GO terms parsed"%len(valid_go_terms))
     return valid_go_terms
 
+
 def save_parameters(output_folder, parameters,debug=False):
     output_file = os.path.join(output_folder,"parameters.json")
     json.dump(parameters, open(output_file, 'w'))
     if debug:
         print("Saved parameters as %s"%output_file)
+
 
 def preprocessing(args, debug=False):
 
@@ -274,6 +258,7 @@ def preprocessing(args, debug=False):
     print("Done with preprocessing module.")
     return True
 
+
 def check_date(date):
     # Checks to see if date a valid input.
     # TODO (completed?)
@@ -289,9 +274,10 @@ def check_date(date):
 
     return valid
 
+
 def parse_range(date_range):
-    #account for a none value getting put in from the default 
-    #example date range: 10-24-2022 11-23-2025
+    # account for a none value getting put in from the default
+    # example date range: 10-24-2022 11-23-2025
     date_from, date_to = date_range.split(" ")
 
     if check_date(date_from) and check_date(date_to):
@@ -299,29 +285,15 @@ def parse_range(date_range):
     else:
         raise Exception("The date range is invalid")
 
-'''
-For 10/25/2022:
-preprocessing:
-read in textfiles for both disease_list and protein_list
-parse through the textfiles and return ids
-synonym list- either return boolean or list of synonyms - DONE
-
-textmining:
-return some form of date range - DONE
-return boolean for full text - DONE
-return boolean for impute labels - DONE
-
-parse_parameter_file - DONE
-'''
 
 def parse_text(full_text):
     return full_text.lower().startswith('y') or full_text.lower().startswith('t')
+
 
 def impute_label(labels):
     return labels.lower().startswith('y') or labels.lower().startswith('t')
 
 
-#pause on this right now
 def textmining(args):
     print(args)
     print("Textmining branch, still in development")
@@ -366,6 +338,7 @@ def textmining(args):
 
     return
 
+
 #STILL LEFT TO DO 
 def analysis(args):
     print(args)
@@ -376,7 +349,6 @@ def analysis(args):
 
 def check_file(file_name):
     # Checks to see if input file is valid.
-    # TODO (completed??)
     return os.path.isfile(file_name)
     
 
@@ -419,11 +391,13 @@ def parse_parameters_file(file_name):
         raise Exception("The parameter file is invalid")
         print("Error")
 
+
 class MyParser(argparse.ArgumentParser):
-   def error(self, message):
-      sys.stderr.write('error: %s\n' % message)
-      self.print_help()
-      sys.exit(2)
+    def error(self, message):
+        sys.stderr.write('error: %s\n' % message)
+        self.print_help()
+        sys.exit(2)
+
 
 def add_bool_arg(parser, name, default=False, help=''):
     ''' source: https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse'''
@@ -436,54 +410,55 @@ def add_bool_arg(parser, name, default=False, help=''):
 
 
 def args_parser():
-    ## TODO implement sub-parsers (completed??)
-    
+
     '''
-    TODO: implement sub-parsers. See 'login' vs 'register' in the link below. Three subparsers needed: 
+    Make subparsers for different components of the pipeline
     source: https://towardsdatascience.com/a-simple-guide-to-command-line-arguments-with-argparse-6824c30ab1c3
     '''
     
     #each will get their own subparser
     # Create a description for the CLI
     DESCRIPTION = ("There are three components to the CaseOLAP LIFT pipeline which must be performed in order\n" 
-    "preprocessing      Prepare diseases and proteins of interest\n" 
-    "text_mining        Perform text mining analysis\n" 
-    "kg_analysis        Analyze the knowledge graph help\n")
-    
+                    "preprocessing      Prepare diseases and proteins of interest\n" 
+                    "text_mining        Perform text mining analysis\n" 
+                    "kg_analysis        Analyze the knowledge graph help\n")
+
     # Create parser object
     parser = MyParser()
-    #parser = argparse.ArgumentParser(description = DESCRIPTION, formatter_class=argparse.RawTextHelpFormatter)
-    
 
     #adding subparsers
     subparser = parser.add_subparsers(dest = "command")
-
     preprocessing = subparser.add_parser("preprocessing")
     text_mining = subparser.add_parser("text_mining")
     kg_analysis = subparser.add_parser("kg_analysis")
 
-    #TODO: implement mutually exclusive arguments for all of these
-
-    #check the logic 
-
     # Add preprocess flags
-    preprocessing.add_argument('-a', '--abbreviations', type = str, required = False,help = "Abbreviations for diseases")
-    preprocessing.add_argument('-d', '--disease_list', type = str, required = False, help = "List of diseases of interest")
-    preprocessing.add_argument('-c', '--subcellular_component', type = str, required = False, help = "Subcellular component of interest")
-    preprocessing.add_argument('-l', '--protein_list', type = str, required = False, help = "Include a custom list of proteins of interest")
-    preprocessing.add_argument('-o', '--output_folder', type = str, required = False, help = 'Output directory to program results')
-    preprocessing.add_argument('-p', '--parameters', type = str, required = False, help = 'Input .json or .txt file specifying parameters to run')
-    add_bool_arg(preprocessing, 'include-synonyms',default=True, help = 'Include UniProt synonyms of proteins with text mining step')
-    add_bool_arg(preprocessing, 'include-ppi', default=False, help = 'Include proteins with STRING protein-protein interactions with entity set expansion')
+    preprocessing.add_argument('-a', '--abbreviations', type=str, required=False,
+                               help="Abbreviations for diseases")
+    preprocessing.add_argument('-d', '--disease_list', type=str, required=False,
+                               help = "List of diseases of interest")
+    preprocessing.add_argument('-c', '--subcellular_component', type=str, required=False,
+                               help="Subcellular component of interest")
+    preprocessing.add_argument('-l', '--protein_list', type = str, required=False,
+                               help="Include a custom list of proteins of interest")
+    preprocessing.add_argument('-o', '--output_folder', type = str, required=False,
+                               help='Output directory to program results')
+    preprocessing.add_argument('-p', '--parameters', type=str, required=False,
+                               help='Input .json or .txt file specifying parameters to run')
+    add_bool_arg(preprocessing, 'include-synonyms',default=True,
+                help='Include UniProt synonyms of proteins with text mining step')
+    add_bool_arg(preprocessing, 'include-ppi', default=False,
+                help='Include proteins with STRING protein-protein interactions with entity set expansion')
     preprocessing.add_argument('-k', '--ppi_k', type=int, required=False,
                                help='k-hop neighbors of STRING PPI to include. Default:1')
     preprocessing.add_argument('-s', '--ppi_score_thresh', type=float, required=False,
-                               help='STRING score threshold, only include interactors above this threshold. Default: 0.9')
-    add_bool_arg(preprocessing, 'include-pw', default=False, help = 'Include proteins with shared Reactome pathways with entity set expansion')
+                help='STRING score threshold, only include interactors above this threshold. Default: 0.9')
+    add_bool_arg(preprocessing, 'include-pw', default=False,
+                help='Include proteins with shared Reactome pathways with entity set expansion')
     preprocessing.add_argument('-n', '--pathway_count_thresh', type=int, required=False,
-                               help='Minimum number of subcellular component proteins required to consider a pathway as significant. Default:0')
+                help='Minimum number of subcellular component proteins required to consider a pathway as significant. Default:0')
     preprocessing.add_argument('-r', '--pathway_prop_thresh', type=float, required=False,
-                               help='Minimum proportion of subcellular component proteins required to consider a pathway as significant. Default: 0.5')
+                help='Minimum proportion of subcellular component proteins required to consider a pathway as significant. Default: 0.5')
     add_bool_arg(preprocessing, 'include-tfd', default=False, help = 'Include proteins with transcription factor dependence from GRNdb with entity set expansion')
     preprocessing.set_defaults(output_folder='.')
     preprocessing.set_defaults(ppi_k=1)
@@ -492,12 +467,14 @@ def args_parser():
     preprocessing.set_defaults(pathway_prop_thresh=0.5)
 
     # Add text mining flags
-    #add default values here
-    text_mining.add_argument('-d date_start date_end', '--date_range date_start date_end', type = str, required = False, default = None, help = 'Specify the date range for PubMed documents which will be downloaded')
-    text_mining.add_argument('-f', '--full_text', type = str, required = False, default = False, help = 'Specify to use full-text in text mining analysis or not')
-    text_mining.add_argument('-i', '--impute_labels', type = str, required = False, default = False, help = 'Whether to impute missing labels on text')
+    # add default values here
+    text_mining.add_argument('-d date_start date_end', '--date_range date_start date_end', type=str, required=False,
+                             default=None, help='Specify the date range for PubMed documents which will be downloaded')
+    text_mining.add_argument('-f', '--full_text', type=str, required=False, default=False,
+                             help='Specify to use full-text in text mining analysis or not')
+    text_mining.add_argument('-i', '--impute_labels', type=str, required=False, default=False,
+                             help = 'Whether to impute missing labels on text')
 
-    # preprocessing.error("ASD")
     return parser
     
 
@@ -519,17 +496,12 @@ def main():
         preprocessing(args)
     elif command == 'text_mining':
         textmining(args)
-    elif command =='analysis':
+    elif command == 'analysis':
         analysis(args)
     else:
-        parser.error("Mode not found: %s"%sys.argv)
+        parser.error("Mode not found: %s" % sys.argv)
         sys.exit(0)
 
 
 if __name__ == "__main__":
     main()
-
-
-
-
-#example parameters.txt file
