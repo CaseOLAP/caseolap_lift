@@ -5,6 +5,7 @@ This version allows the option to preserve case-sensitivity in the
 indexed text.
 '''
 import json
+import os
 from elasticsearch import Elasticsearch
 
 
@@ -31,7 +32,7 @@ if __name__ == '__main__':
     index_init_config = json.load(open(index_init_config_file,'r')) 
     
     # Start elasticsearch 
-    es = Elasticsearch() 
+    es = Elasticsearch('https://localhost:9200') 
         
     # Delete the old index if it exists
     if es.indices.exists(index = index_name):
