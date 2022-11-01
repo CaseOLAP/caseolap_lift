@@ -40,7 +40,7 @@ def es_iterate_all_documents(es, index, pagesize=250, scroll_timeout="1m", **kwa
                                 'meshterm-IS-meshid.json','edges_meshtree_to_meshtree.csv'
                                 '''
 
-def map_disease_mesh_name_to_id(mesh_desc_file = '../parsed_mappings/MeSH/desc2022.xml', output_folder='../parsed_mappings/MeSH'):
+def map_disease_mesh_name_to_id(mesh_desc_file = '../data/MeSH/desc2022.xml', output_folder='../parsed_mappings/MeSH'):
     '''
     FUNCTION:
     - Map the disease MeSH names/terms to the
@@ -105,7 +105,9 @@ def get_mesh_synonyms_api(category2terms, name2id,output_folder = '../parsed_map
 
             mesh_id = name2id[term]
             assert len(mesh_id) == 1
-            r = req.get('https://id.nlm.nih.gov/mesh/lookup/details?descriptor='+mesh_id[0]).json()
+            r_string = 'https://id.nlm.nih.gov/mesh/lookup/details?descriptor='+mesh_id[0]
+            print(r_string)
+            r = req.get(r_string).json()
 
             # Add term synonyms to the category
             for entry in r['terms']:
@@ -113,7 +115,7 @@ def get_mesh_synonyms_api(category2terms, name2id,output_folder = '../parsed_map
                 category2synonyms.setdefault(category, set()).add(synonym)
       
     category2synonyms = switch_dictset_to_dictlist(category2synonyms)
-    json.dump(category2synonyms, open(os.path.join(output_folder,'category2synonyms.json','w')))
+    json.dump(category2synonyms, open(os.path.join(output_folder,'category2synonyms.json'),'w'))
                 
     return category2synonyms
 
@@ -704,7 +706,7 @@ map_disease_mesh_name_to_id()
 category2terms = map_categories2terms()
 
 # Category - MeSH Terms' Synonyms (including terms)
-name2id = json.load(open(os.path.join(data_folder,'/name2id.json'),'r'))
+name2id = json.load(open(os.path.join(mapping_folder,'MeSH/name2id.json'),'r'))
 category2synonyms = get_mesh_synonyms_api(category2terms, name2id) # TODO unsure
 
 # Category - permuted MeSH Terms' Synonyms

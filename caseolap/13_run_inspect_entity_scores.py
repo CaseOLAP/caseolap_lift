@@ -12,7 +12,7 @@ from caseolap._13_inspect_entity_scores import *
 Parameters
 '''
 # Input path 
-id2syns_in = 'input/id2syns.json'                 # The case-varied entity dict 
+id2syns_in = 'input/id2synonyms.json'                 # The case-varied entity dict 
 caseolap_scores_in = 'result/caseolap.csv'        # The CaseOLAP scores
 popular_scores_in = 'result/popularity_score.csv'
 distinct_scores_in = 'result/distinctiveness_score.csv'

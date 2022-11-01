@@ -1,7 +1,7 @@
 '''
 The purpose of this file is to map MeSH Terms (metadata) to PMIDs
 '''
-
+import sys
 # setting path
 sys.path.append('..')
 
