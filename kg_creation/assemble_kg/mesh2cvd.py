@@ -32,7 +32,7 @@ def mesh2triples(mesh_tree_to_id_file, mesh_tree_file, cvd_to_mesh_term_file):
         data['weight'] += [1]
     
     # the mesh tree node to mesh term mapping
-    for from_node, to_node in zip(mesh_tree_to_id_df['Disease (MeSH Tree)'], mesh_tree_to_id_df['Disease (MeSH ID)']):
+    for from_node, to_node in zip(mesh_tree_to_id_df['Disease (MeSH Tree)'], mesh_tree_to_id_df['Disease (MeSH)']):
         data['head'] += [from_node]
         data['relation'] += [len(data['relation'])]
         data['tail'] += [to_node]
@@ -41,7 +41,7 @@ def mesh2triples(mesh_tree_to_id_file, mesh_tree_file, cvd_to_mesh_term_file):
         
     # mapping 8CVDs to MeSH terms
     cvd_to_mesh_lines = [l.strip("\n") for l in open(cvd_to_mesh_term_file,"r").readlines()]
-    cvd_to_mesh = {c:m.split(" ") for c,m in zip(['CM','ARR','CHD','VD','IHD','CCD','VOO','OTH'],cvd_to_mesh_lines)}
+    cvd_to_mesh = {c:m.split(" ") for c,m in zip(['CM','ARR','CHD','VD','IHD','CCD','VOO','OTH'],cvd_to_mesh_lines)} #TODO 8CVDs need to be generalized
     for cvd, mesh_terms in cvd_to_mesh.items():
         for m in mesh_terms:
             mesh = "MeSH_Tree_Disease:"+str(m)

@@ -11,7 +11,7 @@ def caseolap2triples(caseolap_csv_file: os.path) -> pd.DataFrame:
     caseolap_df = pd.read_csv(caseolap_csv_file)
     caseolap_df = caseolap_df
     cvd_type = caseolap_df.columns.to_list()
-    cvd_type.remove("protein")
+    cvd_type.remove("entity")
     caseolap_df = caseolap_df.to_dict("records")
     caseolap_kg = pd.DataFrame()
 
@@ -24,7 +24,7 @@ def caseolap2triples(caseolap_csv_file: os.path) -> pd.DataFrame:
         holder_df = pd.DataFrame()
         holder_df["head"] = [i for i in cvd_type]
         holder_df["relation"] = ["CaseOLAP_score" for i in cvd_type]
-        holder_df["tail"] = [row["protein"] for i in cvd_type]
+        holder_df["tail"] = [row["entity"] for i in cvd_type]
         holder_df["weight"] = [row[i] for i in cvd_type]
 
         #update master kg

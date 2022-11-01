@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+import os
 def mesh_nodes(mesh_kg: pd.DataFrame) -> pd.DataFrame:
     """
     node list for mesh
@@ -21,6 +21,8 @@ def caseolap_nodes(caseolap_kg: pd.DataFrame) -> pd.DataFrame:
 
     
 def reactome_nodes(reactome_kg: pd.DataFrame) -> pd.DataFrame:
+    if reactome_kg is None:
+        return
     protein_nodes = list(set(reactome_kg["head"]))
     protein_type = ["Protein" for i in protein_nodes]
 
@@ -34,6 +36,8 @@ def reactome_nodes(reactome_kg: pd.DataFrame) -> pd.DataFrame:
 
 
 def ppi_nodes(ppi_kg: pd.DataFrame) -> pd.DataFrame:
+    if ppi_kg is None:
+        return
     all_nodes = list(set(ppi_kg["head"].to_list() + ppi_kg["tail"].to_list()))
     node_types = ["Protein" for i in all_nodes]
     node_list = pd.DataFrame({"node": all_nodes, "node_type": node_types})
@@ -41,7 +45,7 @@ def ppi_nodes(ppi_kg: pd.DataFrame) -> pd.DataFrame:
 
 
 def graph_create(mesh_kg: pd.DataFrame, caseolap_kg: pd.DataFrame, \
-                 reactome_kg: pd.DataFrame, ppi_kg: pd.DataFrame) -> pd.DataFrame:
+                 reactome_kg: pd.DataFrame, ppi_kg: pd.DataFrame, output_directory='../output/graph_data') -> pd.DataFrame:
     """
     given the edge list of all compiled datasets, generate merged edge list and merged node list
     """
@@ -50,9 +54,9 @@ def graph_create(mesh_kg: pd.DataFrame, caseolap_kg: pd.DataFrame, \
     df_list = [i for i in df_list if i is not None]
 
     merged_edges = pd.concat(df_list)
-    merged_edges.to_csv("graph_data/merged_edge_list.tsv", sep = "\t", index = False)
+    merged_edges.to_csv(os.path.join(output_directory,"merged_edge_list.tsv"), sep = "\t", index = False)
 
     node_list = pd.concat([mesh_nodes(mesh_kg), caseolap_nodes(caseolap_kg), \
                           reactome_nodes(reactome_kg), ppi_nodes(ppi_kg)])
     node_list = node_list.drop_duplicates(subset = ["node"])
-    node_list.to_csv("graph_data/merged_node_list.tsv", sep = "\t", index = False)
+    node_list.to_csv(os.path.join(output_directory,"merged_node_list.tsv"), sep = "\t", index = False)
