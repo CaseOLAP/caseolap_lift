@@ -222,7 +222,6 @@ def get_proteins_from_go(go_ids, go_id_to_links, go2protein):
     return extracted_proteins
 
 
-<<<<<<< HEAD
 def prepare_resource_mappings(include_ppi, include_pathways, include_transcription_factor_dependence):
     # Right now, PPI does not use any pre-existing mappings
     if include_ppi:
@@ -306,13 +305,9 @@ def prepare_subcellular_compartment_proteins(parameters,
             print("Written to file %s"%out_organelle_list_file)
     return proteins_of_interest
 
-def get_transcription_factor_dependence_partners(proteins,protein_ids_2_gene_ids,gene_ids_2_protein_ids,gene_name_2_protein_id,tf_gene_name_2_target_gene_name, output_folder = "../output/kg"):
-    kg_folder = os.path.join(output_folder,'kg')
-=======
 def get_transcription_factor_dependence_partners(proteins, protein_ids_2_gene_ids, gene_ids_2_protein_ids,
                                                  gene_name_2_protein_id, tf_gene_name_2_target_gene_name,
                                                  output_folder="../output/kg", debug=False):
->>>>>>> 68841961e95d69667c55d1f3060161f3255e5c49
     '''Dictionary'''
     gene_name_2_gene_id = dict()
 
@@ -405,19 +400,12 @@ def get_transcription_factor_dependence_partners(proteins, protein_ids_2_gene_id
     target_protein_id_2_tf_protein_id = switch_dictset_to_dictlist(target_protein_id_2_tf_protein_id)
     tf_protein_id_2_target_protein_id = switch_dictset_to_dictlist(tf_protein_id_2_target_protein_id)
 
-    # TODO move to prepare_kg_data.py or utils
-<<<<<<< HEAD
-    json.dump(tf_protein_id_2_target_gene_id, open(os.path.join(kg_folder,"tf_protein_id_2_target_gene_id.json"), 'w'))
-    json.dump(target_protein_id_2_tf_protein_id, open(os.path.join(kg_folder,"target_protein_id_2_tf_protein_id.json"), 'w'))
-    json.dump(tf_protein_id_2_target_protein_id, open(os.path.join(kg_folder,"tf_protein_id_2_target_protein_id.json"), 'w'))
-=======
     json.dump(tf_protein_id_2_target_gene_id,
               open(os.path.join(output_folder, "tf_protein_id_2_target_gene_id.json"), 'w'))
     json.dump(target_protein_id_2_tf_protein_id,
               open(os.path.join(output_folder, "target_protein_id_2_tf_protein_id.json"), 'w'))
     json.dump(tf_protein_id_2_target_protein_id,
               open(os.path.join(output_folder, "tf_protein_id_2_target_protein_id.json"), 'w'))
->>>>>>> 68841961e95d69667c55d1f3060161f3255e5c49
     # get tf dependence proteins
     proteins_of_interest = set()
 
@@ -433,28 +421,6 @@ def get_transcription_factor_dependence_partners(proteins, protein_ids_2_gene_id
     added_proteins = proteins_of_interest.difference(proteins)
     print("Added proteins: %d" % (len(added_proteins)))
     return added_proteins
-
-<<<<<<< HEAD
-parameters = {'go-term': 'GO:0005739',
-              'include_ppi': True,
-              'ppi_k': 1, 'ppi_score_thresh': 0.99,
-              'include_pathways': True,
-              'pw_count_thresh': 4,
-              'pw_proportion_thresh': 0.50,
-              'include_transcription_factor_dependence': True}
-
-root_directory = '/caseolap_lift_shared_folder'
-#root_directory = '../'
-mapping_folder = os.path.join(root_directory,'parsed_mappings')
-output_folder = os.path.join(root_directory,'output')
-if not os.path.exists(output_folder):
-   os.makedirs(output_folder)
-   kg_output_folder = os.path.join(output_folder,"kg")
-   print(kg_output_folder)
-   os.makedirs(kg_output_folder)
-proteins = prepare_subcellular_compartment_proteins(parameters, mapping_folder=mapping_folder, output_folder=output_folder, debug=False)
-=======
-
 
 def prepare_resource_mappings(include_ppi, include_pathways, include_transcription_factor_dependence):
     # Right now, PPI does not use any pre-existing mappings
@@ -565,4 +531,4 @@ def prepare_subcellular_compartment_proteins(parameters,
 #    print(kg_output_folder)
 #    os.makedirs(kg_output_folder)
 # proteins = prepare_subcellular_compartment_proteins(parameters, mapping_folder=mapping_folder, output_folder=output_folder, debug=False)
->>>>>>> 68841961e95d69667c55d1f3060161f3255e5c49
+
