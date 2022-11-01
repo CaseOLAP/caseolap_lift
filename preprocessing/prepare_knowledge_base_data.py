@@ -98,7 +98,6 @@ def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml", output_folder=".
     for tree, name in tree2name.copy().items():
         tree2name[tree] = name[0]
 
-    print(tree2name)
     json.dump(tree2name, open(os.path.join(output_folder,'meshtree2meshname.json'), 'w'))
 
     tree_nums = list({k: v for k, v in tree2name.items() if k.startswith('C14')})
@@ -847,30 +846,3 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, include_reactome=Tr
         print("Parsing data phase completed.")
 
     return True
-
-
-root_folder = '/caseolap_lift_shared_folder'
-#root_folder = '../'
-
-data_folder=os.path.join(root_folder,'data')
-mapping_folder=os.path.join(root_folder,'parsed_mappings')
-
-# prepare_knowledge_base_data(data_folder, mapping_folder,redownload=False,debug=True)
-
-## Windows UniProt API debugging below.
-# ''' Get results of job '''
-# jobfile="../parsed_mappings/Transcription_Factor_Dependence/curl_uniprot_job_ids_geneid2uniprotkb.json"
-# # job_id=
-# results = dict()
-# with open(jobfile) as fin:
-#     for line in fin:
-#         job_id = json.loads(line)['jobId']
-#         results[job_id] = dict()
-#         print(job_id)
-#         if check_id_mapping_results_ready_uniprot_api(job_id):
-#             print(job_id,"ready")
-#             link = get_id_mapping_results_link_uniprot_api(job_id)
-#             print(link)
-#             results[job_id] = get_id_mapping_results_search_uniprot_api(link)
-# print(results)
-
