@@ -1,38 +1,33 @@
 
 import argparse
-from operator import truediv
 import sys
 import os
 import datetime
-from turtle import resetscreen
 import requests
 from pathlib import Path
 from preprocessing.prepare_knowledge_base_data import  download_data,prepare_knowledge_base_data
+import json
 from preprocessing.entity_set_expansion import prepare_subcellular_compartment_proteins
 
-#want user input matching
-#list of mesh codes and their synonyms, go cellular comps, find the closest match to what the user inputs
-#if its too complicated, use parameters.txt 
+def parse_abbreviations(input, num_categories, debug=False):
 
-def parse_abbreviations(input): 
-    #user can write in any abbreviation that they want but it has to match the number of categgories
-    #has to be unique abbreviations - if not unique, add a (1) at the end to make it unique
-    correct_abrev = ['CM', 'ARR', 'CHD', 'VD', 'IHD', 'CCD', 'VOO', 'OTH']
-    res = []
-    abbreviations = input.split(' ')
-    print("Abbreviation list : %s"%str(abbreviations))
-
-    for abrev in abbreviations:
-        if abrev in correct_abrev:
-            res.append(abrev)
-            print("The abbreviation is: " + abrev)
-            pass
+    abbreviations = []
+    for abbr in input.split(" "):
+        if abbr not in abbreviations:
+            abbreviations += [abbr]
         else:
-            print("The wrong abbreviation is: ")
-            print(abrev)
-            raise Exception("Invalid abbreviation")
-    return res
-#     #what are we checking the abbreviations against? 
+            abbreviations += [abbr+"_1"]
+    if debug:
+        print("Abbreviation list : %s"%str(abbreviations))
+
+    # error checking
+    if len(set(abbreviations)) != num_categories:
+        print("Wrong number of abbreviations. Number of abbreviations must match the number of disease categories")
+        print("Abbreviation list : %s" % str(abbreviations))
+        print("Number of disease categories: "+str(num_categories))
+        raise Exception("Invalid abbreviations")
+
+    return abbreviations
 
 
 def parse_diseases(diseases, valid_mesh_terms, debug=False):
@@ -74,6 +69,7 @@ def parse_diseases(diseases, valid_mesh_terms, debug=False):
             res.append(diseases)
         return res
 
+
 def parse_subcellular_component(components, valid_go_terms, debug=False):
 #     #check if user inputs are valid GO terms
 #http://api.geneontology.org/api/bioentity/function/GO:0006915
@@ -103,9 +99,11 @@ def parse_subcellular_component(components, valid_go_terms, debug=False):
     return res
 
 def parse_protein_list(proteins):
-#     #check if they are valid proteins with uniprot????
-#COME BACK TO THIS 
-#if it takes too long, try batching it or skip it for proteins (need it for diseases)
+
+    # do nothing if it's empty
+    if proteins == None:
+        return
+
     if ".txt" in proteins:
         with open(proteins) as f:
             lines = f.readlines()
@@ -141,7 +139,9 @@ def parse_output_folder(folder):
     return folder
     # output_file.write_text("output")
 
-def load_mesh_terms(output_folder):
+def load_mesh_terms(output_folder,debug=False):
+    if debug:
+        print("Importing list of valid MeSH terms")
 
     # Check if mtrees file exists, otherwise download
     data_folder = os.path.join(output_folder,"data")
@@ -156,8 +156,9 @@ def load_mesh_terms(output_folder):
     return valid_mesh_terms
 
 
-def load_go_terms(output_folder):
-
+def load_go_terms(output_folder, debug=False):
+    if debug:
+        print("Importing list of valid GO-terms")
     # Check if go term file exists, otherwise download
     data_folder = os.path.join(output_folder,"data")
     input_file = os.path.join(data_folder, 'GO/go-basic.obo')
@@ -171,66 +172,85 @@ def load_go_terms(output_folder):
     print("%d GO terms parsed"%len(valid_go_terms))
     return valid_go_terms
 
+def save_parameters(output_folder, parameters,debug=False):
+    output_file = os.path.join(output_folder,"parameters.json")
+    json.dump(parameters, open(output_file, 'w'))
+    if debug:
+        print("Saved parameters as %s"%output_file)
 
 def preprocessing(args, debug=False):
-    print(args)
+
     print("Preproccessing branch")
 
     # check if output folder is valid, otherwise create the folder
     output_folder = parse_output_folder(args.output_folder)
 
     # import list of valid mesh and go terms to check user input against
-    print("Importing list of valid MeSH terms")
-    valid_mesh_terms = load_mesh_terms(output_folder)
-    print("Importing list of valid GO-terms")
-    valid_go_terms = load_go_terms(output_folder)
-    
-    ## TODO
-    # flags: abbreviations, diseases, cellcomp, proteinlist, output folder, parameters, -s synonyms, 
-    # Check arguments
-    #TODO: check that all required argumetns are there 
-    #eiether (cell comp or protein list), required: disease list
-    #create a default output folder, same default for synonyms
-    #figure out if we have parameter file 
-    # check if args.parameters not none
-    has_parameter_file = False #TODO
+    valid_mesh_terms = load_mesh_terms(output_folder, debug=debug)
+    valid_go_terms = load_go_terms(output_folder, debug=debug)
+
+    # Check that all required arguments are provided
+    # At minimum, user must provide a parameter file OR ((protein_list OR GO-term) AND (disease_list))
+    has_parameter_file = (args.parameters is not None)
+    if not has_parameter_file:
+        has_protein_list = (args.protein_list is not None)
+        has_cellular_component = (args.subcellular_component is not None)
+        if has_protein_list or has_cellular_component:
+            pass
+        else:
+            print("Error! Please provide a custom list of proteins OR a GO term of interest")
+            raise Exception("No protein list or go-term provided")
+        has_disease_list = (args.disease_list is not None)
+        if not has_disease_list:
+            print("Error! Please provide a disease list of interest")
+            raise Exception("No disease list provided")
+
     if has_parameter_file:
-        param_file_name = "TODO" #TODO
+        param_file_name = args.parameters
         parameters = parse_parameters_file(param_file_name)
     else:
-        parameters = {}
-        # TODO
-
-        #check if you haev diseases, either cell comp or protein list
-        #if they don't have it, raise exception and tell them the requirements
 
         # parse input files
-        abbreviations = parse_abbreviations(args.abbreviations) #TODO make these functions, args.abbrev might not be right
-        #valve disease = VD, ischemic heart disease = IHD 
-        #ned to have a lit of mesh codes whch are given in as diseases (array of 8 dif mesh codes)
-        #abrvs will be what we use to make it easier to understand 
-        #take in as text file or read in as parameters
-        #ex: (-d disease code 1, DC2, ...) input a list of mesh codes
-        # TODO: how to parse the command line input (will it grab everything after -d and before next argument)
-        #can also have it as an input textfile (-d diseases.txt(list of msh ids n a textfile)) and then parse th txtfile 
-        diseases = parse_diseases(args.disease_list, valid_mesh_terms) # TODO same as above, also need to check against MeSH tree, if it is valid input
-        cellular_component = parse_subcellular_component(args.subcellular_component, valid_go_terms) #TODO same, need to check against GO terms to see if it is valid input
-        protein_list = parse_protein_list(args.protein_list) #TODO
-        
-        # TODO synonym list for proteins
-        #make this true by default 
-        include_synonyms = parse_include_synonyms(args.include_synonyms)
+        diseases = parse_diseases(args.disease_list, valid_mesh_terms)
+        abbreviations = parse_abbreviations(args.abbreviations, len(diseases), debug=debug)
+        cellular_component = parse_subcellular_component(args.subcellular_component, valid_go_terms)
+        protein_list = parse_protein_list(args.protein_list)
+        include_synonyms = getattr(args,'include-synonyms')
+        include_ppi = getattr(args,'include-ppi')
+        ppi_k = args.ppi_k
+        ppi_thresh = args.ppi_score_thresh
+        include_reactome = getattr(args, 'include-pw')
+        pathway_count_thresh = args.pathway_count_thresh
+        pathway_prop_thresh = args.pathway_prop_thresh
+        include_tfd = getattr(args,'include-tfd')
 
+        parameters = {'disease_categories':diseases,
+                   'abbreviations':abbreviations,
+                   'cellular_components':cellular_component,
+                   'protein_list':protein_list,
+                   'include_synonyms':include_synonyms,
+                   'include_ppi':include_ppi,
+                   'ppi_k':ppi_k,
+                   'ppi_thresh':ppi_thresh,
+                   'include_reactome':include_reactome,
+                   'pathway_count_thresh':pathway_count_thresh,
+                   'pathway_prop_thresh':pathway_prop_thresh,
+                   'include_tfd':include_tfd
+                   }
 
-    #wrie a parameters.txt file tht will have the same output as the flag input
-    print(parameters)
-    # Run the proprocessing module
-    print("TODO running preprocessing module")
+    # prepare data folders
     data_folder = os.path.join(output_folder,'data')
     mapping_folder = os.path.join(output_folder,'parsed_mappings')
     analysis_output_folder = os.path.join(output_folder,'output')
-    #TODO handle variable downloads (i.e. if not using Reactome or TFD, don't need to download it)
-    successful = prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, debug=debug)
+
+    # save parameters as json in output folder
+    save_parameters(analysis_output_folder, parameters,debug=True)
+
+    # Run the proprocessing module
+    successful = prepare_knowledge_base_data(data_folder, mapping_folder,
+                                             include_reactome=parameters['include_reactome'],
+                                             include_tfd=parameters['include_tfd'],
+                                             redownload=False, debug=debug)
 
     if successful:
         print("Knowledge base data successfully downloaded and mapped.")
@@ -239,14 +259,17 @@ def preprocessing(args, debug=False):
         sys.exit(1)
 
     # Run entity_set_expansion
-    parameters = {'go-term': cellular_component,
-                  'include_ppi': True,
-                  'ppi_k': 1, 'ppi_score_thresh': 0.99,
-                  'include_pathways': True,
-                  'pw_count_thresh': 4,
-                  'pw_proportion_thresh': 0.50,
-                  'include_transcription_factor_dependence': True}
-    prepare_subcellular_compartment_proteins(parameters, mapping_folder=mapping_folder, output_folder=analysis_output_folder, debug=False)
+    ent_parameters = {'go-term': parameters['cellular_components'],
+                        'include_ppi': parameters['include_ppi'],
+                        'ppi_k':  parameters['ppi_k'],
+                        'ppi_score_thresh':  parameters['ppi_thresh'],
+                        'include_pathways':  parameters['include_reactome'],
+                        'pw_count_thresh':  parameters['pathway_count_thresh'],
+                        'pw_proportion_thresh': parameters['pathway_prop_thresh'],
+                        'include_transcription_factor_dependence': parameters['include_tfd']}
+    prepare_subcellular_compartment_proteins(ent_parameters,
+                                             mapping_folder=mapping_folder,
+                                             output_folder=analysis_output_folder, debug=False)
 
     print("Done with preprocessing module.")
     return True
@@ -402,6 +425,16 @@ class MyParser(argparse.ArgumentParser):
       self.print_help()
       sys.exit(2)
 
+def add_bool_arg(parser, name, default=False, help=''):
+    ''' source: https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse'''
+    help_str_feature = help+' Default: %s' % (str(default))
+    help_str_no_feature = help+' Default: %s'%(str(not default))
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--' + name, dest=name, action='store_true', help=help_str_feature)
+    group.add_argument('--no-' + name, dest=name, action='store_false',help=help_str_no_feature)
+    parser.set_defaults(**{name:default})
+
+
 def args_parser():
     ## TODO implement sub-parsers (completed??)
     
@@ -435,21 +468,28 @@ def args_parser():
 
     # Add preprocess flags
     preprocessing.add_argument('-a', '--abbreviations', type = str, required = False,help = "Abbreviations for diseases")
-    #changed disease_list type to string instead of list
     preprocessing.add_argument('-d', '--disease_list', type = str, required = False, help = "List of diseases of interest")
     preprocessing.add_argument('-c', '--subcellular_component', type = str, required = False, help = "Subcellular component of interest")
     preprocessing.add_argument('-l', '--protein_list', type = str, required = False, help = "Include a custom list of proteins of interest")
-    # unsure if this is right since there are a lot of spaces in the argument
-    #changed this argument to include a full name
-    preprocessing.add_argument('-o', '--output_folder', type = str, required = False, help = 'Output directory to program results') 
-    preprocessing.add_argument('-p parameters parameters.txt', type = str, required = False, help = 'Input .json or .txt file specifying parameters to run')
-    ##TODO actually, this should not have 'boolean', it should be a flag only. Same for all boolean (-f,-i)
-    #removed boolean term from thoe flags. is that all that needs to be done?
-
-    #by default is
-    #test
-    preprocessing.add_argument('-s', '--include_synonyms', type = str, required = False, help = 'Include synonyms for proteins')
-
+    preprocessing.add_argument('-o', '--output_folder', type = str, required = False, help = 'Output directory to program results')
+    preprocessing.add_argument('-p', '--parameters', type = str, required = False, help = 'Input .json or .txt file specifying parameters to run')
+    add_bool_arg(preprocessing, 'include-synonyms',default=True, help = 'Include UniProt synonyms of proteins with text mining step')
+    add_bool_arg(preprocessing, 'include-ppi', default=False, help = 'Include proteins with STRING protein-protein interactions with entity set expansion')
+    preprocessing.add_argument('-k', '--ppi_k', type=int, required=False,
+                               help='k-hop neighbors of STRING PPI to include. Default:1')
+    preprocessing.add_argument('-s', '--ppi_score_thresh', type=float, required=False,
+                               help='STRING score threshold, only include interactors above this threshold. Default: 0.9')
+    add_bool_arg(preprocessing, 'include-pw', default=False, help = 'Include proteins with shared Reactome pathways with entity set expansion')
+    preprocessing.add_argument('-n', '--pathway_count_thresh', type=int, required=False,
+                               help='Minimum number of subcellular component proteins required to consider a pathway as significant. Default:0')
+    preprocessing.add_argument('-r', '--pathway_prop_thresh', type=float, required=False,
+                               help='Minimum proportion of subcellular component proteins required to consider a pathway as significant. Default: 0.5')
+    add_bool_arg(preprocessing, 'include-tfd', default=False, help = 'Include proteins with transcription factor dependence from GRNdb with entity set expansion')
+    preprocessing.set_defaults(output_folder='.')
+    preprocessing.set_defaults(ppi_k=1)
+    preprocessing.set_defaults(ppi_score_thresh=0.9)
+    preprocessing.set_defaults(pathway_count_thresh=4)
+    preprocessing.set_defaults(pathway_prop_thresh=0.5)
 
     # Add text mining flags
     #add default values here
@@ -457,6 +497,7 @@ def args_parser():
     text_mining.add_argument('-f', '--full_text', type = str, required = False, default = False, help = 'Specify to use full-text in text mining analysis or not')
     text_mining.add_argument('-i', '--impute_labels', type = str, required = False, default = False, help = 'Whether to impute missing labels on text')
 
+    # preprocessing.error("ASD")
     return parser
     
 
@@ -483,6 +524,7 @@ def main():
     else:
         parser.error("Mode not found: %s"%sys.argv)
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

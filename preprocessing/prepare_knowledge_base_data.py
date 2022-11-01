@@ -774,7 +774,8 @@ def prepare_go_mappings(input_folder = '../data/GO/', output_folder = '../parsed
     # json.dump(go_term_cell_comp2protein, open(os.path.join(output_folder,"go_term_cell_comp2protein.json"),'w')) # Don't think we need this
 
 
-def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, debug=False):
+def prepare_knowledge_base_data(data_folder, mapping_folder, include_reactome=True, include_tfd = True,
+                                redownload=False, debug=False):
     '''
     This function checks the data_folder and mapping_folder if the required files are downloaded and parsed, respectively.
     redownload flag means it will delete/overwrite existing files
@@ -784,19 +785,24 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, redownload=False, d
     :return:
     '''
 
-    #TODO have the required_files change based on user input
     required_files = {'MeSH': ['desc2022.xml', 'mtrees2021.bin'], #TODO MeSH dates should be generalized
                       'GO': ['go-basic.obo', 'goa_human.gaf'],
                       'Reactome': ['UniProt2Reactome.txt', 'ReactomePathwaysRelation.txt'],
                       'Transcription_Factor_Dependence': ['GRNdb','UP000005640_9606.fasta']
                       }
-
     processed_files = {'MeSH': ['meshtree2meshname.json', 'edges_meshtree-IS-meshid_disease.csv',
                                 'meshterm-IS-meshid.json','edges_meshtree_to_meshtree.csv'], #TODO meshterms_per_cat.json?
                        'GO': ['go2protein.json','protein2go.json','go_id_to_links.json'],
                        'Reactome': ['pathway2protein.json','protein2pathway.json'],
                        'Transcription_Factor_Dependence': ['all_entrez2uniprot.json','all_uniprot2entrez.json','id2synonyms_not_case_varied.json','gene_name_2_protein_id.json','tf_gene_name_2_target_gene_name.json']
                        }
+    # remove reactome and tfd if not included in analysis
+    if not include_reactome:
+        required_files.pop('Reactome')
+        processed_files.pop('Reactome')
+    if not include_tfd:
+        required_files.pop("Transcription_Factor_Dependence")
+        processed_files.pop("Transcription_Factor_Dependence")
 
     ### Downloading data ###
     # determine which files need to be downloaded
