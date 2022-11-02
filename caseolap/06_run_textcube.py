@@ -52,3 +52,8 @@ if __name__ == '__main__':
     TC.category_statistics(textcube_stat, logfile)                              
 
     logfile.close()
+    
+    
+pmid_and_cat = json.load(open(textcube_pmid2category)) #[[PMID1:Cat_0],...,[PMID_N:Cat_n]]
+relevant_pmids = set(map(lambda x: x[0], pmid_and_cat))
+json.dump(relevant_pmids, open('data/textcube_relevant_pmids.json','w'))
