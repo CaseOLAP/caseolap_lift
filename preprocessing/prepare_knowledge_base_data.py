@@ -287,7 +287,7 @@ def load_protein2pathway_data(uniprot2reactome_file_path='./data/Reactome/UniPro
     return protein2pathway, pathway2protein
 
 
-def download_data(resource_to_data_file_bool, data_folder):
+def download_data(resource_to_data_file_bool, data_folder, file_to_link_file):
     '''
     This function downloads a data file if it is not available.
     resource_to_data_file_bool is a dict of resource (e.g. MeSH, GO, Reactome)
@@ -295,45 +295,7 @@ def download_data(resource_to_data_file_bool, data_folder):
     :param resource_to_data_file_bool:
     :return:
     '''
-    file_to_link = {'go-basic.obo': "http://purl.obolibrary.org/obo/go/go-basic.obo",
-                    'goa_human.gaf': "http://geneontology.org/gene-associations/goa_human.gaf.gz",
-                    'UniProt2Reactome.txt': "https://reactome.org/download/current/UniProt2Reactome.txt",
-                    'ReactomePathwaysRelation.txt': 'https://reactome.org/download/current/ReactomePathwaysRelation.txt',
-                    'desc2022.xml':'https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xmlmesh/desc2022.xml',
-                    'mtrees2021.bin':"https://nlmpubs.nlm.nih.gov/projects/mesh/2021/meshtrees/mtrees2021.bin",
-                    'GRNdb':['http://www.grndb.com/download/txt?condition=Heart_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Adult-Heart',
-                            'http://www.grndb.com/download/txt?condition=Fetal-Heart',
-                            'http://www.grndb.com/download/txt?condition=whole_NeonatalHeart',
-                            'http://www.grndb.com/download/txt?condition=cardiac_fibroblasts',
-                            'http://www.grndb.com/download/txt?condition=Blood_Vessel_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Adipose_Tissue_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Blood_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Adrenal_Gland_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Breast_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Colon_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Esophagus_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Kidney_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Liver_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Lung_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Muscle_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Esophagus_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Nerve_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Ovary_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Pancreas_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Pituitary_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Prostate_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Salivary_Gland_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Skin_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Small_Intestine_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Spleen_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Stomach_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Testis_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Thyroid_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Uterus_GTEx',
-                            'http://www.grndb.com/download/txt?condition=Vagina_GTEx'],
-                    'UP000005640_9606.fasta':'https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/Eukaryota/UP000005640/UP000005640_9606.fasta.gz'
-                    }
+    file_to_link = json.load(file_to_link_file)
 
     for resource, data_file_bool_dict in resource_to_data_file_bool.items():
         for data_file, exists in data_file_bool_dict.items():

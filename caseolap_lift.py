@@ -110,7 +110,7 @@ def parse_protein_list(proteins):
         return res
 
 
-def parse_include_synonyms(synonyms):
+def parse_include_synonyms(synonyms): #TODO remove
     return synonyms.lower().startswith('y') or synonyms.lower().startswith('t')
 
 
@@ -250,7 +250,9 @@ def preprocessing(args, debug=False):
                         'include_pathways':  parameters['include_reactome'],
                         'pw_count_thresh':  parameters['pathway_count_thresh'],
                         'pw_proportion_thresh': parameters['pathway_prop_thresh'],
-                        'include_transcription_factor_dependence': parameters['include_tfd']}
+                        'include_transcription_factor_dependence': parameters['include_tfd'],
+                        'filter_against_proteome': True #TODO
+                      }
     prepare_subcellular_compartment_proteins(ent_parameters,
                                              mapping_folder=mapping_folder,
                                              output_folder=analysis_output_folder, debug=False)

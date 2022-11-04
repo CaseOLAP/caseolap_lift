@@ -365,6 +365,21 @@ def get_transcription_factor_dependence_partners(proteins, protein_ids_2_gene_id
     return added_proteins
 
 
+def extract_proteins_from_fasta(fasta_file):
+    headers = [l.strip("\n") for l in open(fasta_file,"r").readlines() if ">" in l]
+    proteins = set([h.split("|")[1] for h in headers])
+    return proteins
+
+
+def load_proteome():
+    proteome_file = './data/Transcription_Factor_Dependence/UP000005640_9606.fasta'
+    return extract_proteins_from_fasta(proteome_file)
+
+
+def filter_proteins_against_proteome(proteins, proteome):
+    return set([p for p in proteins if p in proteome])
+
+
 def prepare_subcellular_compartment_proteins(parameters,
                                              output_folder="../output",
                                              mapping_folder='../parsed_mappings',
@@ -378,6 +393,7 @@ def prepare_subcellular_compartment_proteins(parameters,
     pw_count_thresh = parameters['pw_count_thresh']
     pw_proportion_thresh = parameters['pw_proportion_thresh']
     include_transcription_factor_dependence = parameters['include_transcription_factor_dependence']
+    filter_against_proteome = parameters['filter_against_proteome']
 
     # load data
     resource_mapping_files = prepare_resource_mappings(include_ppi, include_pathways,
@@ -386,8 +402,14 @@ def prepare_subcellular_compartment_proteins(parameters,
     resource_mappings = load_mappings(resource_mapping_files, mappings_folder=mapping_folder)
     go_id_to_links, go2protein = resource_mappings['GO']
 
+    # filter proteome
+    if filter_against_proteome:
+        proteome = load_proteome()
+
     # Get organelle-specific proteins
     organelle_proteins = get_proteins_from_go(go_terms, go_id_to_links, go2protein)
+    if filter_against_proteome:
+        organelle_proteins = filter_proteins_against_proteome(organelle_proteins,proteome)
 
     print("%d proteins relevant to go term %s" % (len(organelle_proteins), go_terms))
     proteins_of_interest = set(organelle_proteins)
@@ -397,10 +419,11 @@ def prepare_subcellular_compartment_proteins(parameters,
                                                 score_thresh=ppi_score_thresh,
                                                 output_folder=output_folder,
                                                 debug=debug)
-        print(type(proteins_of_interest))
-        print(type(ppi_proteins))
-        proteins_of_interest = proteins_of_interest.union(set(ppi_proteins))
+        if filter_against_proteome:
+            ppi_proteins = filter_proteins_against_proteome(ppi_proteins, proteome)
         print("%d proteins added from protein-protein interaction" % len(ppi_proteins))
+
+        proteins_of_interest = proteins_of_interest.union(set(ppi_proteins))
     if include_pathways:
         pathway2protein = resource_mappings['Reactome'][0]
         pathway_proteins = get_pathway_partners(organelle_proteins, pathway2protein,
@@ -408,8 +431,10 @@ def prepare_subcellular_compartment_proteins(parameters,
                                                 proportion_thresh=pw_proportion_thresh,
                                                 output_folder=output_folder,
                                                 debug=debug)
-        proteins_of_interest = proteins_of_interest.union(set(pathway_proteins))
+        if filter_against_proteome:
+            pathway_proteins = filter_proteins_against_proteome(pathway_proteins, proteome)
         print("%d proteins added with common pathways" % len(pathway_proteins))
+        proteins_of_interest = proteins_of_interest.union(set(pathway_proteins))
     if include_transcription_factor_dependence:
         gene_ids_2_protein_ids, protein_ids_2_gene_ids, gene_name_2_protein_id, \
             tf_gene_name_2_target_gene_name = resource_mappings['Transcription_Factor_Dependence']
@@ -420,8 +445,11 @@ def prepare_subcellular_compartment_proteins(parameters,
                                                                     tf_gene_name_2_target_gene_name,
                                                                     output_folder=output_folder,
                                                                     debug=debug)
-        proteins_of_interest = proteins_of_interest.union(set(tfd_proteins))
+        if filter_against_proteome:
+            tfd_proteins = filter_proteins_against_proteome(tfd_proteins, proteome)
         print("%d proteins from transcription factor dependence" % len(tfd_proteins))
+
+        proteins_of_interest = proteins_of_interest.union(set(tfd_proteins))
 
     print("In total, %d proteins of interest assembled" % (len(proteins_of_interest)))
 
