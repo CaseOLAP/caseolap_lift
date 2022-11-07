@@ -1,17 +1,15 @@
 import json
 
-
 class FileConversion:
     def __init__(self, input_file, output_file):
         self.input_file = input_file
         self.output_file = output_file
 
-    @staticmethod
-    def parse_bool(bool_text):
+
+    def parse_bool(self, bool_text):
         return bool_text.lower().startswith('y') or bool_text.lower().startswith('t')
 
-    @staticmethod
-    def isfloat(num):
+    def isfloat(self,num):
         try:
             float(num)
             return True
@@ -30,25 +28,25 @@ class FileConversion:
         for k, v in json_data.items():
 
             if type(v) == list:
-                # for list of lists, handle all lists separately
+                # for list of lists, handle all lists seperately
                 if type(v[0]) == list:
                     for list_idx in range(len(v)):
                         list_text = " ".join(v[list_idx])
-                        text = "{key}: {value}\n".format(key=k, value=list_text)
+                        text = "{key}: {value}\n".format(key = k, value = list_text)
                         text_file.write(text)
                 # if it is not a list of lists, just print all contents out normally
                 else:
-                    # handle lists of type int separately
+                    # handle lists of type int seperately 
                     if type(v[0]) == int:
                         list_text = " ".join(map(str, v))
                     else:
                         # list_text = " ".join(str(v))
                         list_text = " ".join(v)
-                    text = "{key}: {value}\n".format(key=k, value=list_text)
+                    text = "{key}: {value}\n".format(key = k, value = list_text)
                     text_file.write(text)
             # if the type is not a list, then just print out the values
             else:
-                text = "{key}: {value}\n".format(key=k, value=v)
+                text = "{key}: {value}\n".format(key = k, value = v)
                 text_file.write(text)
         
         json_file.close()
@@ -75,6 +73,7 @@ class FileConversion:
         idx = 0
         for k, v in keys.items():
 
+
             # if there is more than one apperance of a key, we need to make a list of lists
             if v > 1:
                 items = []
@@ -94,6 +93,7 @@ class FileConversion:
                 # if v = 1, then we just need to append whatever is there
                 split = lines[idx].split(":")
                 line_text = ":".join(split[1:]).strip()
+                line_text = line_text.replace("\n", "")
 
                 # determine if k is a bool field
                 is_string_list = " " in line_text
@@ -122,9 +122,12 @@ class FileConversion:
                 idx += 1
         
         # write to files
-        with open(self.output_file, "w") as outfile:
-            json.dump(res, outfile)
+        # with open(self.output_file, "w") as outfile:
+        #     json.dump(res, outfile)
 
         # close files
         text.close()
-        outfile.close()
+        # outfile.close()
+
+        return res
+

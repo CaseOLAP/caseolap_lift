@@ -8,7 +8,7 @@ from pathlib import Path
 from preprocessing.prepare_knowledge_base_data import  download_data,prepare_knowledge_base_data
 import json
 from preprocessing.entity_set_expansion import prepare_subcellular_compartment_proteins
-
+from utils.FileConverter import *
 
 def parse_abbreviations(input, num_categories, debug=False):
 
@@ -191,7 +191,7 @@ def preprocessing(args, debug=False):
 
     if has_parameter_file:
         param_file_name = args.parameters
-        parameters = parse_parameters_file(param_file_name)
+        parameters = parse_parameters_file(param_file_name, valid_mesh_terms, valid_go_terms)
     else:
 
         # parse input files
@@ -354,44 +354,142 @@ def check_file(file_name):
     return os.path.isfile(file_name)
     
 
-def parse_parameters_file(file_name):
+# def parse_parameters_file(file_name):
+#     # User provided input as a parameter file.
+#     is_valid = check_file(file_name)
+#
+#     if is_valid:
+#         print("Parsing parameter file")
+#         #TODO read parameters (as a json or a text field, TBD).
+#         parameters = {}
+#
+#         with open(file_name) as f:
+#             lines = f.readlines()
+#         for line in lines:
+#             if line.startswith("Abbreviations:"):
+#                 #if they don't give abbreivations, add default abbrevs (mesh codes from below (list of 8))
+#                 abbreviations = parse_abbreviations(line.split(":")[1])
+#             if line.startswith("Disease Category:"):
+#                 diseases = parse_diseases(line.split(":")[1])
+#             if line.startswith("Cellular component:"):
+#                 #required, unless they give a protein list
+#                 #no default list
+#                 #have to have one or the other, otherwise throw an error
+#                 components = parse_subcellular_component(line.split(":")[1])
+#             if line.startswith("Protein list:"):
+#                 #if they give cell comp then don't need it
+#                 #no default list
+#                 proteins = parse_protein_list(line.split(":")[1])
+#             if line.startswith("Include synonyms:"):
+#                 #maake the default true if they don't give anythign
+#                 synonyms = parse_include_synonyms(line.split(":")[1])
+#             #include parsing things for textmining as well
+#
+#         #add the respective lists into parameters
+#         #have
+#         return parameters
+#     else:
+#         #TODO throw an error, tell user the parameter file is invalid. (completed??)
+#         raise Exception("The parameter file is invalid")
+#         print("Error")
+
+def parse_parameters_file(file_name, valid_mesh_terms, valid_go_terms):
     # User provided input as a parameter file.
     is_valid = check_file(file_name)
 
     if is_valid:
         print("Parsing parameter file")
-        #TODO read parameters (as a json or a text field, TBD).
+        # TODO read parameters (as a json or a text field, TBD).
         parameters = {}
-
+        num_categories = 0
         with open(file_name) as f:
             lines = f.readlines()
-        for line in lines:
-            if line.startswith("Abbreviations:"):
-                #if they don't give abbreivations, add default abbrevs (mesh codes from below (list of 8))
-                abbreviations = parse_abbreviations(line.split(":")[1])
-            if line.startswith("Disease Category:"):
-                diseases = parse_diseases(line.split(":")[1])
-            if line.startswith("Cellular component:"):
-                #required, unless they give a protein list
-                #no default list
-                #have to have one or the other, otherwise throw an error
-                components = parse_subcellular_component(line.split(":")[1])
-            if line.startswith("Protein list:"):
-                #if they give cell comp then don't need it
-                #no default list
-                proteins = parse_protein_list(line.split(":")[1])
-            if line.startswith("Include synonyms:"):
-                #maake the default true if they don't give anythign
-                synonyms = parse_include_synonyms(line.split(":")[1])
-            #include parsing things for textmining as well 
 
-        #add the respective lists into parameters
-        #have
-        return parameters
+        # read through parameters file to find out how many disease categories there are
+        for line in lines:
+            if line.startswith("disease_categories:"):
+                num_categories += 1
+
+        include_ppi = False
+        ppi_k = False
+        ppi_score_thresh = False
+        include_reactome = False
+        pathway_count_thresh = False
+        pathway_prop_thresh = False
+        include_tfd = False
+
+        for line in lines:
+            line = line.replace("\n", "")
+
+            if line.startswith("disease_categories: "):
+                dis = parse_diseases(line.split(": ")[1], valid_mesh_terms)
+
+            # written for 1 line of abbreviations
+            if line.startswith("abbreviations: "):
+                # if they don't give abbreivations, add default abbrevs (mesh codes from below (list of 8))
+                abbrev = parse_abbreviations(line.split(": ")[1], num_categories)
+            # written for 1 line of cellular components right now, can change later
+            if line.startswith("cellular_components: "):
+                # required, unless they give a protein list
+                # no default list
+                # have to have one or the other, otherwise throw an error
+                comp = parse_subcellular_component((line.split(": ")[1]), valid_go_terms)
+            # written for 1 line of proteins
+            if line.startswith("protein_list: "):
+                # if they give cell comp then don't need it
+                # no default list
+                protein_string = line.split(": ")[1]
+                if protein_string != "None":
+                    proteins = parse_protein_list()
+                else:
+                    protein = None
+            if line.startswith("include_synonyms: "):
+                # maake the default true if they don't give anythign
+                synonyms = parse_include_synonyms(line.split(": ")[1])
+            if line.startswith("include_ppi: "):
+                include_ppi = True
+            if line.startswith("ppi_k: "):
+                ppi_k = True
+            if line.startswith("ppi_thresh: "):
+                ppi_score_thresh = True
+            if line.startswith("include_reactome: "):
+                include_reactome = True
+            if line.startswith("pathway_prop_thresh: "):
+                pathway_prop_thresh = True
+            if line.startswith("pathway_count_thresh: "):
+                pathway_count_thresh = True
+            if line.startswith("include_tfd: "):
+                include_tfd = True
+            # include parsing things for textmining as well
+
+        # add the respective lists into parameters
+        # have
+
+        with open(file_name, 'a') as f:
+            if not include_ppi:
+                f.write("include_ppi: False")
+            if not ppi_k:
+                f.write("ppi_k: 1")
+            if not ppi_score_thresh:
+                f.write("ppi_thresh: 0.9")
+            if not include_reactome:
+                f.write("include_reactome: False")
+            if not pathway_count_thresh:
+                f.write("pathway_count_thresh: 4")
+            if not pathway_prop_thresh:
+                f.write("pathway_prop_thresh: 0.5")
+            if not include_tfd:
+                f.write("include_tfd: False")
+        f.close()
+
+        # Convert into json
+        converter = FileConversion(file_name, "outputfile.json")
+        x = converter.txt_to_json()
+        y = json.dumps(x)
+        return x
     else:
-        #TODO throw an error, tell user the parameter file is invalid. (completed??)
+        # TODO throw an error, tell user the parameter file is invalid. (completed??)
         raise Exception("The parameter file is invalid")
-        print("Error")
 
 
 class MyParser(argparse.ArgumentParser):
