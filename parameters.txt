@@ -1,0 +1,19 @@
+disease_categories: C14.280.238 C14.280.434
+disease_categories: C14.280.067
+disease_categories: C14.280.400
+disease_categories: C14.280.484
+disease_categories: C14.280.647
+disease_categories: C14.280.123
+disease_categories: C14.280.955
+disease_categories: C14.280.195 C14.280.282 C14.280.383 C14.280.470 C14.280.945 C14.280.459 C14.280.720
+abbreviations: CM ARR CHD VD IHD CCD VOO OTH
+cellular_components: GO:0005739
+protein_list: None
+include_synonyms: True
+include_ppi: True
+ppi_k: 1
+ppi_thresh: 0.99
+include_reactome: True
+pathway_count_thresh: 4
+pathway_prop_thresh: 0.5
+include_tfd: True
