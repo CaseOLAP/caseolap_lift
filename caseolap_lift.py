@@ -458,7 +458,7 @@ def args_parser():
     add_bool_arg(preprocessing, 'include-pw', default=False,
                 help='Include proteins with shared Reactome pathways with entity set expansion')
     preprocessing.add_argument('-n', '--pathway_count_thresh', type=int, required=False,
-                help='Minimum number of subcellular component proteins required to consider a pathway as significant. Default:0')
+                help='Minimum number of subcellular component proteins required to consider a pathway as significant. Default:4')
     preprocessing.add_argument('-r', '--pathway_prop_thresh', type=float, required=False,
                 help='Minimum proportion of subcellular component proteins required to consider a pathway as significant. Default: 0.5')
     add_bool_arg(preprocessing, 'include-tfd', default=False, help = 'Include proteins with transcription factor dependence from GRNdb with entity set expansion')
