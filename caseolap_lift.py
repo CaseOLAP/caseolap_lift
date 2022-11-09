@@ -312,20 +312,22 @@ def text_mining(args):
         param_file_name = args.parameters
         parameters = parse_text_mining_parameters_file(param_file_name)
     else:
-
-        date_range = parse_range(args.date_range)
         #check if the date is valid
+        date_range = parse_range(args.date_range)
 
+        include_full_text = getattr(args,'include-full-text')
 
-        full_text = args.full_text
+        include_label_imputation = getattr(args, 'include-label-imputation')
+        # impute_labels = args.impute_labels
 
-        impute_labels = args.impute_labels
+        check_synonyms = args.check_synonyms
 
         rerun_scoring = args.rerun_scoring
 
         parameters = { 'date_range':date_range,
-                       'full_text':full_text,
-                       'impute_labels':impute_labels,
+                       'include_full_text':include_full_text,
+                       'include_label_imputation':include_label_imputation,
+                       'check_synonyms':check_synonyms,
                        'rerun_scoring':rerun_scoring
                    }
     print(parameters)
@@ -359,10 +361,10 @@ def analysis(args):
         parameters = parse_analyze_results(param_file_name)
     else:
         analyze_all_proteins = args.analyze_all_proteins
-        analyze_core_proteins = args.analyze_core_proteins
+        z_score_thresh = args.z_score_thresh
 
         parameters = { 'analyze_all_proteins':analyze_all_proteins,
-                       'analyze_core_proteins':analyze_core_proteins
+                       'z_score_thresh':z_score_thresh
         }
     print(parameters)
 
@@ -394,23 +396,19 @@ def prepare_kg(args):
         param_file_name = args.parameters
         parameters = parse_analyze_results(param_file_name)
     else:
+        caseolap_score_type = args.caseolap_scores
         include_all_proteins = args.include_all_proteins
-        include_core_proteins = args.include_core_proteins
-        include_mesh = args.include_mesh
-        include_ppi = args.include_ppi
-        include_pw = args.include_pw
-        include_tfd = args.include_tfd
-        scale_z_score = args.scale_z_score
-        use_z_score = args.use_z_score
+        include_mesh = getattr(args, 'include-mesh')
+        include_ppi = getattr(args, 'include-ppi')
+        include_pw = getattr(args, 'include-pw')
+        include_tfd = getattr(args, 'include-tfd')
 
         parameters = { "include_all_proteins":include_all_proteins,
-                       "include_core_proteins": include_core_proteins,
                        "include_mesh": include_mesh,
                        "include_ppi": include_ppi,
                        "include_pw": include_pw,
                        "include_tfd": include_tfd,
-                       "scale_z_score": scale_z_score,
-                       "use_z_score": use_z_score
+                       "caseolap_score_type":caseolap_score_type
                        }
     print(parameters)
 
@@ -431,46 +429,7 @@ def prepare_kg(args):
 def check_file(file_name):
     # Checks to see if input file is valid.
     return os.path.isfile(file_name)
-    
 
-# def parse_parameters_file(file_name):
-#     # User provided input as a parameter file.
-#     is_valid = check_file(file_name)
-#
-#     if is_valid:
-#         print("Parsing parameter file")
-#         #TODO read parameters (as a json or a text field, TBD).
-#         parameters = {}
-#
-#         with open(file_name) as f:
-#             lines = f.readlines()
-#         for line in lines:
-#             if line.startswith("Abbreviations:"):
-#                 #if they don't give abbreivations, add default abbrevs (mesh codes from below (list of 8))
-#                 abbreviations = parse_abbreviations(line.split(":")[1])
-#             if line.startswith("Disease Category:"):
-#                 diseases = parse_diseases(line.split(":")[1])
-#             if line.startswith("Cellular component:"):
-#                 #required, unless they give a protein list
-#                 #no default list
-#                 #have to have one or the other, otherwise throw an error
-#                 components = parse_subcellular_component(line.split(":")[1])
-#             if line.startswith("Protein list:"):
-#                 #if they give cell comp then don't need it
-#                 #no default list
-#                 proteins = parse_protein_list(line.split(":")[1])
-#             if line.startswith("Include synonyms:"):
-#                 #maake the default true if they don't give anythign
-#                 synonyms = parse_include_synonyms(line.split(":")[1])
-#             #include parsing things for textmining as well
-#
-#         #add the respective lists into parameters
-#         #have
-#         return parameters
-#     else:
-#         #TODO throw an error, tell user the parameter file is invalid. (completed??)
-#         raise Exception("The parameter file is invalid")
-#         print("Error")
 
 def parse_parameters_file(file_name, valid_mesh_terms, valid_go_terms):
     # User provided input as a parameter file.
@@ -570,39 +529,6 @@ def parse_parameters_file(file_name, valid_mesh_terms, valid_go_terms):
         # TODO throw an error, tell user the parameter file is invalid. (completed??)
         raise Exception("The parameter file is invalid")
 
-# def parse_analyze_results(file_name):
-#     is_valid = check_file(file_name)
-#
-#     if is_valid:
-#         print('Parsing parameters file')
-#         with open(file_name) as f:
-#             lines = f.readlines()
-#
-#         include_z_score_thresh = False
-#         include_analyze_all_proteins = False
-#         include_analyze_core_proteins = False
-#
-#         for line in lines:
-#             line = line.replace("\n", "")
-#
-#             if line.startswith("z_score_thresh: "):
-#                 include_z_score_thresh = True
-#             if line.startswith("analyze_all_proteins: "):
-#                 include_analyze_all_proteins = True
-#             if line.startswith("analyze_core_proteins: "):
-#                 include_analyze_core_proteins = True
-#
-#         with open(file_name, 'a') as f:
-#             if not include_z_score_thresh:
-#                 f.write("z_score_thresh: 3.0")
-#             if not include_analyze_all_proteins:
-#                 f.write("analyze_all_proteins: False")
-#             if not include_analyze_core_proteins:
-#                 f.write("analyze_core_proteins: False")
-#         f.close()
-#
-#         converter = FileConverter(file_name, "outputfile.json")
-#         return converter.txt_to_json()
 
 def parse_analyze_results(file_name):
     is_valid = check_file(file_name)
@@ -825,13 +751,13 @@ def args_parser():
     # add default values here
     text_mining.add_argument('-d', '--date_range', type=str, required=False,
                              default=None, help='Specify the date range for PubMed documents which will be downloaded')
-    text_mining.add_argument('-f', '--full_text', type=str, required=False, default=False,
-                             help='Specify to use full-text in text mining analysis or not')
-    text_mining.add_argument('-i', '--impute_labels', type=str, required=False, default=False,
-                             help='Whether to impute missing labels on text')
-    text_mining.add_argument('-c', '--check_synonyms', type=str, required=False, default=False,
+    add_bool_arg(text_mining, 'include-full-text', default=False,
+                 help='Specify to use full-text in text mining analysis or not')
+    add_bool_arg(text_mining, 'include-label-imputation', default=False,
+                 help='Whether to impute missing labels on text')
+    text_mining.add_argument('-c', '--check_synonyms', type=bool, required=False, default=False,
                              help='Indicating the software to halt function to screen ambiguous protein names')
-    text_mining.add_argument('-r', '--rerun_scoring', type=str, required=False, default=False,
+    text_mining.add_argument('-r', '--rerun_scoring', type=bool, required=False, default=False,
                              help='Indicating the software to re-run CaseOLAP score calculation after updating synonym list')
     text_mining.add_argument('-o', '--output_folder', type=str, required=False,
                              help='Directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps')
@@ -841,32 +767,38 @@ def args_parser():
 
     analyze_results.add_argument('-z', '--z_score_thresh', type=float, required=False, default=3.0,
                                  help='The threshold to consider a protein as obtaining a significant score with respect to a disease category')
-    analyze_results.add_argument('--analyze_all_proteins', type=str, required=False, default=True,
-                                 help='Analyze CaseOLAP results from all functionally related proteins')
-    analyze_results.add_argument('--analyze_core_proteins', type=str, required=False, default=False,
-                                 help='Analyze CaseOLAP results from only core proteins related to the cellular component')
+    analyze_protein_group = analyze_results.add_mutually_exclusive_group(required=False)
+    analyze_protein_group.add_argument('--analyze_all_proteins', dest='analyze_all_proteins', action='store_true',
+                                       help='Analyze CaseOLAP results from all functionally related proteins. Default: False')
+    analyze_protein_group.add_argument('--analyze_core_proteins', dest='analyze_all_proteins', action='store_false',
+                                       help='Analyze CaseOLAP results from only core proteins related to the cellular component. Default: True')
+    analyze_results.set_defaults(**{'analyze_all_proteins': False})
     analyze_results.add_argument('-o', '--output_folder', type=str, required=False,
                                  help='Directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps')
     analyze_results.add_argument('-p', '--parameters', type=str,
                                  help='Will bypass all options and run based on parameters.txt or parameters.json file')
     analyze_results.set_defaults(output_folder='.')
 
-    prepare_knowledge_graph.add_argument('--include_tfd', type=bool, default=True,
-                                         help='Indicating the software to include edges between proteins with transcription factor dependence')
-    prepare_knowledge_graph.add_argument('--include_ppi', type=bool, default=True,
-                                         help='Indicating the software to include edges between proteins with protein-protein interaction')
-    prepare_knowledge_graph.add_argument('--include_pw', type=bool, default=True,
-                                         help='Indicating the software to include Reactome pathway nodes and edges between proteins and pathways')
-    prepare_knowledge_graph.add_argument('--include_mesh', type=bool, default=True,
-                                         help='Indicating the software to include the MeSH disease hierarchy')
-    prepare_knowledge_graph.add_argument('--use_z_score', type=bool, default=True,
-                                         help='Use z-score transformation of CaseOLAP scores as graph edge weights')
-    prepare_knowledge_graph.add_argument('--scale_z_score', type=bool, default=False,
-                                         help='scale z-scores of CaseOLAP scores to be non-negative, to include as graph edge weights')
-    prepare_knowledge_graph.add_argument('--include_all_proteins', type=bool, default=True,
-                                         help='Include CaseOLAP results from all functionally related proteins')
-    prepare_knowledge_graph.add_argument('--include_core_proteins', type=bool, default=False,
-                                         help='Include CaseOLAP results from only core proteins related to the cellular component')
+
+
+    add_bool_arg(prepare_knowledge_graph, 'include-tfd', default=True,
+                 help='Indicating the software to include edges between proteins with transcription factor dependence')
+    add_bool_arg(prepare_knowledge_graph, 'include-ppi', default=True,
+                 help='Indicating the software to include edges between proteins with protein-protein interaction')
+    add_bool_arg(prepare_knowledge_graph, 'include-pw', default=True,
+                 help='Indicating the software to include Reactome pathway nodes and edges between proteins and pathways')
+    add_bool_arg(prepare_knowledge_graph, 'include-mesh', default=True,
+                 help='Indicating the software to include the MeSH disease hierarchy')
+    # which caseolap scores to include
+    prepare_knowledge_graph.add_argument('--caseolap_scores', default='z_score', choices=['raw','z_score','scaled_z_score'],
+                                         help='Specifies which CaseOLAP scores to include in the knowledge graph. Raw scores (between 0.0 and 1.0), z-score per disease category (mean 0), or positive scaled z-scores (all scores > 0.0)')
+    # mutual exclusive group on include_all_proteins
+    kg_protein_group = prepare_knowledge_graph.add_mutually_exclusive_group(required=False)
+    kg_protein_group.add_argument('--include_all_proteins', dest='include_all_proteins', action='store_true',
+                                       help='Analyze CaseOLAP results from all functionally related proteins. Default: False')
+    kg_protein_group.add_argument('--include_core_proteins', dest='include_all_proteins', action='store_false',
+                                       help='Analyze CaseOLAP results from only core proteins related to the cellular component. Default: True')
+    prepare_knowledge_graph.set_defaults(**{'include_all_proteins': False})
     prepare_knowledge_graph.add_argument('-o', '--output_folder', type=str,
                                          help='Directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps')
     prepare_knowledge_graph.add_argument('-p', '--parameters', type=str,
