@@ -73,180 +73,109 @@ def prepare_synonyms(ranked_ent_df):
         uniref_to_synonyms[uniref] = list(all_synonyms_dict.keys())
     return uniref_to_synonyms
 
+def merge_redundant_ids(prot_to_syn, scores):
+    # protein groups to synonym
+    temp_sets = {k: set(v) for k, v in prot_to_syn.items()}  # duplicate synonyms will be in same order
+    temp = {k: ", ".join(v) for k, v in temp_sets.items()}  # joining the synonyms
+    prot_to_syn_df = pd.DataFrame.from_dict(temp, orient='index')  # creating dataframe out of dict
+    prot_to_syn_df.columns = ["Synonyms"]
+    prot_to_syn_df.index.name = "entity"
 
-def merge_UniRefIDs(prot_to_UniRef, pg_to_syn, scores):
-    
-    #protein groups to synonym
-    temp_sets = {k: set(v) for k,v in pg_to_syn.items()} #duplicate synonyms will be in same order
-    temp = {k: ", ".join(v) for k,v in temp_sets.items()} #joining the synonyms
-    pg_to_syn_df = pd.DataFrame.from_dict(temp, orient = 'index') #creating dataframe out of dict
-    pg_to_syn_df.columns = ["Synonyms"]
-    pg_to_syn_df.index.name = "Protein Groups"
-       
-    #creating the data frame with "Mapped Proteins" as index
-    scores = scores.rename(columns = {"protein" : "Protein Groups"})
-    scores = scores.set_index("Protein Groups")
-    merged_df = scores.merge(pg_to_syn_df, right_index = True, left_index = True, how = 'left')
-    merged_df = merged_df.merge(prot_to_UniRef, right_index = True, left_index = True, how = 'left')
-    merged_df = merged_df.reset_index()
-    merged_df = merged_df.set_index("Mapped Proteins")
-    #return merged_df
-   
-    #creating a protein group to mapped proteins dictionary
-    prot_to_pg_df = merged_df[['Protein Groups']]
-    prot_to_pg_df = prot_to_pg_df.reset_index()
-    prot_to_pg = {}
-    for i in prot_to_pg_df['Mapped Proteins']:
-        prot_to_pg[i] = [{prot_to_pg_df['Protein Groups'][j]} for j in prot_to_pg_df[prot_to_pg_df['Mapped Proteins']==i].index]
-    
-    #dataframe of just CVDs
-    floats = merged_df.select_dtypes(include = ['float64'])
-    integers = merged_df.select_dtypes(include = ['int64'])
-    CVD_scores_df = pd.concat([floats, integers], axis = 1)
-    
-    #mapped proteins to synonym dictionary
-    prot_to_syn_df = merged_df[['Synonyms']]
-    prot_to_syn_df = prot_to_syn_df.reset_index()
-    prot_to_syn = {}
-    for i in prot_to_syn_df['Mapped Proteins']:
-        prot_to_syn[i] = [{prot_to_syn_df['Synonyms'][j]} for j in prot_to_syn_df[prot_to_syn_df['Mapped Proteins']==i].index]
+    # creating the data frame with "Mapped Proteins" as index
+    scores = scores.set_index("entity")
+    merged_df = scores.merge(prot_to_syn_df, right_index=True, left_index=True, how='left')
 
-    #obtaining list of all synonyms
-    all_syns = merged_df[['Synonyms']].values
-    
+    # obtaining list of all synonyms
+    all_syns = prot_to_syn_df[['Synonyms']].values
+
+    # no_repeat_syns = set(all_syns)
     no_repeat_syns = []
     for i in all_syns:
         if i not in no_repeat_syns:
             no_repeat_syns.append(i)
-    
-    #for each synonym
+
+    # for each synonym
     for syn in no_repeat_syns:
-       
+
         for i in syn:
             syn = i
 
-        #take a subset of that data frame - only those synonyms
+        # take a subset of that data frame - only those synonyms
         syn_df = merged_df.loc[merged_df['Synonyms'] == syn]
+        # no merging if it's the only entry with those synonyms
+        if syn_df.shape[0] == 1:
+            continue
 
-        #obtaining list of all mapped proteins in this subset
-        all_mappedProteins = syn_df.index.to_list()    
+        # obtaining list of all mapped proteins in this subset
+        all_mappedProteins = syn_df.index.to_list()
 
-        #obtaining list of all mapped proteins in reverse
-        reverse_all_mappedProteins = [] 
+        # obtaining list of all mapped proteins in reverse
+        reverse_all_mappedProteins = []
         for i in all_mappedProteins:
-             reverse_all_mappedProteins.insert(0,i)
+            reverse_all_mappedProteins.insert(0, i)
 
-        #these are the proteins that will be marked 'deleted' later on
+        # these are the proteins that will be marked 'deleted' later on
         deleted_prots = []
 
-        #starting at the beginning of the protein list
+        # starting at the beginning of the protein list
         for protein in all_mappedProteins:
 
-            #delete protein from the reversed list so we don't match it against itself
+            # delete protein from the reversed list so we don't match it against itself
             del reverse_all_mappedProteins[-1]
 
-            #if this protein was not marked 'deleted', obtain its scores and synonyms
+            # if this protein was not marked 'deleted', obtain its scores and synonyms
             if protein not in deleted_prots:
 
-                #protein of focus' score 
-                prot_score = CVD_scores_df.loc[protein].to_numpy()
+                # protein of focus' score
+                prot_score = scores.loc[protein].to_numpy()
 
-                #protein of focus' synonym
-                prot_synonym = prot_to_syn[protein] 
+                # protein of focus' synonym
+                prot_synonym = prot_to_syn[protein]
 
-                #going through the synonyms
-                all_mappedProteins_syns = []
-                for entry in prot_synonym:
-                    for synonym in entry:
-                        single_syn = synonym.split(sep = ', ')
-                        for syn in single_syn:
-                            all_mappedProteins_syns.append(syn)
-                all_mappedProteins_syns = set(all_mappedProteins_syns)
-
-                #these will stores the UniRefs and mapped proteins to be appended
-                UniRefs_to_append = []
+                # these will stores the UniRefs and mapped proteins to be appended
                 mappedProts_to_append = []
 
-                #now to compared against another protein
-                for other_protein in reverse_all_mappedProteins:  
+                # now to compared against another protein
+                for other_protein in reverse_all_mappedProteins:
 
-                    #if this protein was not marked 'deleted', obtain its scores and synonyms as well
+                    # if this protein was not marked 'deleted', obtain its scores and synonyms as well
                     if other_protein != 'deleted':
 
-                        #score of protein being compared
-                        other_prot_score = CVD_scores_df.loc[other_protein].to_numpy()
+                        # score of protein being compared
+                        other_prot_score = scores.loc[other_protein].to_numpy()
 
-                        #synonym of protein being compared
+                        # synonym of protein being compared
                         other_prot_syns = prot_to_syn[other_protein]
 
-                        #going through the synonyms
-                        all_other_syns = []
-                        for entry in other_prot_syns:
-                            for synonym in entry:
-                                single_syn = synonym.split(sep = ', ')
-                                for syn in single_syn:
-                                    all_other_syns.append(syn)
-                        all_other_syns = set(all_other_syns)
+                        # if protein of focus and the one being compared match in score and synonym:
+                        if (prot_synonym == other_prot_syns) and (
+                        np.array_equal(prot_score, other_prot_score, equal_nan=True)):
 
-                        #if protein of focus and the one being compared match in score and synonym:
-                        if (all_other_syns == all_mappedProteins_syns) and (np.array_equal(prot_score, other_prot_score, equal_nan=True)):
-
-                            #other_protein and its UniRef need to be appended
+                            # other_protein and its UniRef need to be appended
                             mappedProts_to_append.append(other_protein)
 
-                            pg = prot_to_pg[other_protein]
-                            for group in pg: 
-                                if group not in UniRefs_to_append:
-                                    UniRefs_to_append.append(group)
-
-                            #marked other_protein from original and reversed list as 'deleted'
+                            # marked other_protein from original and reversed list as 'deleted'
                             deleted_prots.append(other_protein)
-                            reverse_all_mappedProteins = [i.replace(other_protein, 'deleted') for i in reverse_all_mappedProteins]
+                            reverse_all_mappedProteins = [i.replace(other_protein, 'deleted') for i in
+                                                          reverse_all_mappedProteins]
 
-                            #removing other_protein entry in df
-                            merged_df = merged_df.drop(index = other_protein) 
+                            # removing other_protein entry in df
+                            merged_df = merged_df.drop(index=other_protein)
 
-                #append other UniRefs and mapped proteins to same entry as protein of focus
+                # append other proteins to same entry as protein of focus
                 mappedProts_to_append.append(protein)
 
-                current_UniRef = prot_to_pg[protein]        
-
-                for group in current_UniRef:
-                    if group not in UniRefs_to_append:
-                        UniRefs_to_append.append(current_UniRef)
-
-                mappedProts_to_append = str(mappedProts_to_append)
-                UniRefs_to_append = str(UniRefs_to_append)
+                mappedProts_to_append = ";".join(mappedProts_to_append)
                 protein = str(protein)
 
-                merged_df.loc[[protein], ["Protein Groups"]] = UniRefs_to_append
-
                 merged_df = merged_df.rename(index={protein: mappedProts_to_append})
-                    
-        
-    pd.set_option("display.max_colwidth", None)
 
-    #setting the index back to protein groups
+    # setting the index back to protein groups
     merged_df = merged_df.reset_index()
-    merged_df = merged_df.set_index('Protein Groups') 
-    
+
     syns_column = merged_df.pop('Synonyms')
     merged_df.insert(1, 'Synonyms', syns_column)
-    
-    new_index = []
-    for i in merged_df.index:
-        i_temp = "; ".join(i.replace("[","").replace("]","").replace("{","").replace("}","").replace("'","").split(", "))
-        new_index += [i_temp]
-    merged_df.index = new_index
-    
-    new_mapped_proteins = []
-    for i in merged_df['Mapped Proteins']:
-        i_temp = "; ".join(i.replace("[","").replace("]","").replace("'","").replace(";",",").split(", "))
-        new_mapped_proteins += [i_temp]
-    merged_df['Mapped Proteins'] = new_mapped_proteins
-    
-    merged_df = merged_df.rename_axis("Protein Groups")
-    
+
     return merged_df
 
 

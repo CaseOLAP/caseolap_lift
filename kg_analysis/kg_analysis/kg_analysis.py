@@ -197,5 +197,5 @@ def independent_edge_evaluation(g, node_types):
 
     labeled_negative_sample_pred_df.to_csv("predictions.csv")
 
-    return eval_df
+    return eval_df, filtered_pred_df
 

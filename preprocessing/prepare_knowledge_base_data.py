@@ -162,8 +162,9 @@ def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml", output_folder=".
 
 
 def download_file(url, directory):
+
     local_filename = url.split('/')[-1]
-    PATH = os.path.join(directory,local_filename)
+    PATH = os.path.join(directory,local_filename).replace('?','_') # for grndb files
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(PATH, 'wb') as f:
@@ -295,7 +296,7 @@ def download_data(resource_to_data_file_bool, data_folder, file_to_link_file):
     :param resource_to_data_file_bool:
     :return:
     '''
-    file_to_link = json.load(file_to_link_file)
+    file_to_link = json.load(open(file_to_link_file,'r'))
 
     for resource, data_file_bool_dict in resource_to_data_file_bool.items():
         for data_file, exists in data_file_bool_dict.items():
@@ -760,7 +761,8 @@ def prepare_go_mappings(input_folder = '../data/GO/', output_folder = '../parsed
     # json.dump(go_term_cell_comp2protein, open(os.path.join(output_folder,"go_term_cell_comp2protein.json"),'w')) # Don't think we need this
 
 
-def prepare_knowledge_base_data(data_folder, mapping_folder, include_reactome=True, include_tfd = True,
+def prepare_knowledge_base_data(data_folder, mapping_folder, file_to_link_file,
+                                include_reactome=True, include_tfd = True,
                                 redownload=False, debug=False):
     '''
     This function checks the data_folder and mapping_folder if the required files are downloaded and parsed, respectively.
@@ -771,9 +773,9 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, include_reactome=Tr
     :return:
     '''
 
-    required_files = {'MeSH': ['desc2022.xml', 'mtrees2021.bin'], #TODO MeSH dates should be generalized
+    required_files = {'MeSH': ['desc2022.xml', 'mtrees2022.bin'], #TODO MeSH dates should be generalized
                       'GO': ['go-basic.obo', 'goa_human.gaf'],
-                      'Reactome': ['UniProt2Reactome.txt', 'ReactomePathwaysRelation.txt'],
+                      'Reactome': ['UniProt2Reactome.txt', 'ReactomePathwaysRelation.txt','UniProt2Reactome_All_Levels.txt', 'ReactomePathways.txt'],
                       'Transcription_Factor_Dependence': ['GRNdb','UP000005640_9606.fasta']
                       }
     processed_files = {'MeSH': ['meshtree2meshname.json', 'edges_meshtree-IS-meshid_disease.csv',
@@ -804,7 +806,7 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, include_reactome=Tr
 
     if not download_complete:
         # download files
-        download_data(resource_to_data_file_bool, data_folder)
+        download_data(resource_to_data_file_bool, data_folder, file_to_link_file)
 
         # check to see which downloaded files still are not available
         resource_to_data_file_bool,download_complete_after_download = check_required_files(required_files, data_folder, debug=debug)

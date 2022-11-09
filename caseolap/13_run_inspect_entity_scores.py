@@ -22,10 +22,10 @@ remove_syns_in = 'data/remove_these_synonyms.txt'    # Syns that were not used
 cat2pmids_in = 'data/metadata_category2pmids_2012-2022.json'   # Category->[PMID,...,PMID] 
 
 # Output paths
-ranked_syns_out = 'result/Ranked Synonyms/ranked_synonyms.txt' # Syns ranked by counts
-ranked_ent_caseolap_out = 'result/Ranked Entities/Ranked CaseOLAP Score/ranked_entities.txt'  # Ents ranked by score
-ranked_ent_popular_out = 'result/Ranked Entities/Ranked Popularity Score/ranked_entities.txt'  # Ents ranked by score
-ranked_ent_distinct_out = 'result/Ranked Entities/Ranked Distinctiveness Score/ranked_entities.txt'  # Ents ranked by score
+ranked_syns_out = 'result/ranked_synonyms/ranked_synonyms.txt' # Syns ranked by counts
+ranked_ent_caseolap_out = 'result/Ranked Entities/ranked_caseolap_score/ranked_entities.txt'  # Ents ranked by score
+ranked_ent_popular_out = 'result/Ranked Entities/ranked_popularity_score/ranked_entities.txt'  # Ents ranked by score
+ranked_ent_distinct_out = 'result/Ranked Entities/ranked_distinctiveness_score/ranked_entities.txt'  # Ents ranked by score
 
 
 
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     IES = InspectEntityScores(caseolap_scores_in, id2syns_in, remove_syns_in,\
                               pmid_syn_count_in, cat2pmids_in)
 
-    '''Ranked Synonyms'''
+    '''ranked_synonyms'''
     # Export the ranked synonyms
     IES.get_ranked_synonyms_found(cat2pmids_in, pmid_syn_count_in, ranked_syns_out)
     

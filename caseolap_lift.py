@@ -7,6 +7,8 @@ from pathlib import Path
 from preprocessing.prepare_knowledge_base_data import  download_data,prepare_knowledge_base_data
 import json
 from preprocessing.entity_set_expansion import prepare_subcellular_compartment_proteins
+from analysis.run_analyse_results import analyze_results
+
 from utils.FileConverter import *
 
 def parse_abbreviations(input, num_categories, debug=False):
@@ -225,12 +227,15 @@ def preprocessing(args, debug=False):
     data_folder = os.path.join(output_folder,'data')
     mapping_folder = os.path.join(output_folder,'parsed_mappings')
     analysis_output_folder = os.path.join(output_folder,'output')
+    config_folder = os.path.join(output_folder,'config')
+    file_to_link_file = os.path.join(config_folder,'knowledge_base_links.json')
+
 
     # save parameters as json in output folder
     save_parameters(analysis_output_folder, parameters,debug=True)
 
     # Run the proprocessing module
-    successful = prepare_knowledge_base_data(data_folder, mapping_folder,
+    successful = prepare_knowledge_base_data(data_folder, mapping_folder, file_to_link_file,
                                              include_reactome=parameters['include_reactome'],
                                              include_tfd=parameters['include_tfd'],
                                              redownload=False, debug=debug)
@@ -376,8 +381,11 @@ def analysis(args):
     # save parameters as json in output folder
     save_parameters(analysis_output_folder, parameters, debug=True)
 
-    # Run the text mining modules
-    # TODO
+    # Run analyze_results module
+    analyze_results(output_folder, z_score_thresh = parameters['z_score_thresh'],
+                    merge_proteins=True,
+                    use_core_proteins=(not parameters['analyze_all_proteins']),
+                    debug=True)
 
     print("Done with analysis module.")
     return True
