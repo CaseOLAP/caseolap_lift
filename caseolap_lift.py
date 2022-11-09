@@ -36,8 +36,6 @@ def parse_diseases(diseases, valid_mesh_terms, debug=False):
         with open(diseases) as f:
             lines = f.readlines()
         for line in lines:
-            # TODO change it to be from categories.txt not parameter.txt
-            # TODO there will be no disease category heading, jst straight dieases ids
             if line.startswith("Disease Category:"):
                     diseases = parse_diseases(line.split(":")[1], valid_mesh_terms)
     else:
@@ -109,7 +107,7 @@ def parse_protein_list(proteins):
         return res
 
 
-def parse_include_synonyms(synonyms): #TODO remove
+def parse_include_synonyms(synonyms): #TODO move to utils
     return synonyms.lower().startswith('y') or synonyms.lower().startswith('t')
 
 
@@ -190,7 +188,7 @@ def preprocessing(args, debug=False):
 
     if has_parameter_file:
         param_file_name = args.parameters
-        parameters = parse_parameters_file(param_file_name, valid_mesh_terms, valid_go_terms)
+        parameters = parse_preprocessing_parameters_file(param_file_name, valid_mesh_terms, valid_go_terms)
     else:
 
         # parse input files
@@ -206,6 +204,7 @@ def preprocessing(args, debug=False):
         pathway_count_thresh = args.pathway_count_thresh
         pathway_prop_thresh = args.pathway_prop_thresh
         include_tfd = getattr(args,'include-tfd')
+        filter_against_proteome = getattr(args,'include-filter-against-proteome')
 
         parameters = {'disease_categories':diseases,
                    'abbreviations':abbreviations,
@@ -218,7 +217,8 @@ def preprocessing(args, debug=False):
                    'include_reactome':include_reactome,
                    'pathway_count_thresh':pathway_count_thresh,
                    'pathway_prop_thresh':pathway_prop_thresh,
-                   'include_tfd':include_tfd
+                   'include_tfd':include_tfd,
+                   'filter_against_proteome':filter_against_proteome
                    }
 
     # prepare data folders
@@ -250,7 +250,7 @@ def preprocessing(args, debug=False):
                         'pw_count_thresh':  parameters['pathway_count_thresh'],
                         'pw_proportion_thresh': parameters['pathway_prop_thresh'],
                         'include_transcription_factor_dependence': parameters['include_tfd'],
-                        'filter_against_proteome': True #TODO
+                        'filter_against_proteome': parameters['filter_against_proteome']
                       }
     prepare_subcellular_compartment_proteins(ent_parameters,
                                              mapping_folder=mapping_folder,
@@ -431,7 +431,7 @@ def check_file(file_name):
     return os.path.isfile(file_name)
 
 
-def parse_parameters_file(file_name, valid_mesh_terms, valid_go_terms):
+def parse_preprocessing_parameters_file(file_name, valid_mesh_terms, valid_go_terms):
     # User provided input as a parameter file.
     is_valid = check_file(file_name)
 
@@ -534,7 +534,7 @@ def parse_analyze_results(file_name):
     is_valid = check_file(file_name)
 
     if is_valid:
-        print('Parsing parameters file')
+        print('Parsing analyze results parameters file')
         with open(file_name) as f:
             lines = f.readlines()
 
@@ -615,13 +615,12 @@ def parse_text_mining_parameters_file(file_name):
         y = json.dumps(x)
         return x
     else:
-        # TODO throw an error, tell user the parameter file is invalid. (completed??)
         raise Exception("The parameter file is invalid")
 
 def parse_prepare_knowledge_graph_file(file_name):
     is_valid = check_file(file_name)
     if is_valid:
-        print("Parsing text mining parameter file")
+        print("Parsing prepare knowledge graph parameter file")
         with open(file_name) as f:
             lines = f.readlines()
         include_tfd = False
@@ -668,7 +667,6 @@ def parse_prepare_knowledge_graph_file(file_name):
         y = json.dumps(x)
         return x
     else:
-        # TODO throw an error, tell user the parameter file is invalid. (completed??)
         raise Exception("The parameter file is invalid")
 
 
@@ -685,7 +683,7 @@ def add_bool_arg(parser, name, default=False, help=''):
     help_str_no_feature = help+' Default: %s'%(str(not default))
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--' + name, dest=name, action='store_true', help=help_str_feature)
-    group.add_argument('--no-' + name, dest=name, action='store_false',help=help_str_no_feature)
+    group.add_argument('--no-' + name.replace('include-',''), dest=name, action='store_false',help=help_str_no_feature)
     parser.set_defaults(**{name:default})
 
 
@@ -741,6 +739,8 @@ def args_parser():
                                help='Minimum proportion of subcellular component proteins required to consider a pathway as significant. Default: 0.5')
     add_bool_arg(preprocessing, 'include-tfd', default=False,
                  help='Include proteins with transcription factor dependence from GRNdb with entity set expansion')
+    add_bool_arg(preprocessing, 'include-filter-against-proteome', default=True,
+                 help='Whether to filter UniProt IDs against the UniProt Human reference proteome.')
     preprocessing.set_defaults(output_folder='.')
     preprocessing.set_defaults(ppi_k=1)
     preprocessing.set_defaults(ppi_score_thresh=0.9)
