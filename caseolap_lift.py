@@ -277,6 +277,10 @@ def check_date(date):
 
 
 def parse_range(date_range):
+
+    if date_range is None:
+        return
+
     # account for a none value getting put in from the default
     # example date range: 10-24-2022 11-23-2025
     date_from, date_to = date_range.split(" ")
@@ -295,58 +299,134 @@ def impute_label(labels):
     return labels.lower().startswith('y') or labels.lower().startswith('t')
 
 
-def textmining(args):
-    print(args)
+def text_mining(args):
     print("Textmining branch, still in development")
 
-    # flags: date range, full-text flag (boolean), impute-labels (boolean), parameters file, 
-    # TODO add: input-folder from previous step; OR list of proteins and diseases from prev step.
+    # check if output folder is valid, otherwise create the folder
+    output_folder = parse_output_folder(args.output_folder)
 
-    #date range: default is all pubs - represent it as none 
-    ##full-text: default is false 
-    #impute-
+    # parse parameters
+    has_parameter_file = (args.parameters is not None)
 
-    #parameters file: use other function, specify which branch it came from
-    #searching for a specific date range, use full text where available, 
-    #just parsing the input from the user 
-
-    date_range = parse_range(args.date_range)
-    #check if the date is valid
-
-    
-    full_text = parse_text(args.full_text)
-
-    impute_labels = impute_label(args.impute_labels)
-
-    #take parameter files for all 3
-    #an option to run the entire pipeline
-    #need an example 
-
-    #currently in 2 dif txtfiles that have to be edited before runnng 
-    #goal is to make the inpt easier and more intuitive
-
-    #have it as a parameters textfle 
-
-    # Check arguments
-    ## TODO same as above
-
-    date_from,date_to = args.date_range # TODO or something like that
-    if check_date(date_from) and check_date(date_to):
-        pass
+    if has_parameter_file:
+        param_file_name = args.parameters
+        parameters = parse_text_mining_parameters_file(param_file_name)
     else:
-        # throw exception
-        print("Invalid date")
 
-    return
+        date_range = parse_range(args.date_range)
+        #check if the date is valid
 
 
-#STILL LEFT TO DO 
+        full_text = args.full_text
+
+        impute_labels = args.impute_labels
+
+        rerun_scoring = args.rerun_scoring
+
+        parameters = { 'date_range':date_range,
+                       'full_text':full_text,
+                       'impute_labels':impute_labels,
+                       'rerun_scoring':rerun_scoring
+                   }
+    print(parameters)
+
+    # prepare data folders
+    data_folder = os.path.join(output_folder,'data')
+    mapping_folder = os.path.join(output_folder,'parsed_mappings')
+    analysis_output_folder = os.path.join(output_folder,'output')
+
+    # save parameters as json in output folder
+    save_parameters(analysis_output_folder, parameters,debug=True)
+
+    # Run the text mining modules
+    #TODO
+
+    print("Done with text mining module.")
+    return True
+
+
 def analysis(args):
-    print(args)
     print("Analysis branch, still in development")
-    # TODO add: path to input-folder from previous step; OR add knowledge graph edges
-    return
 
+    # check if output folder is valid, otherwise create the folder
+    output_folder = parse_output_folder(args.output_folder)
+
+    # parse parameters
+    has_parameter_file = (args.parameters is not None)
+
+    if has_parameter_file:
+        param_file_name = args.parameters
+        parameters = parse_analyze_results(param_file_name)
+    else:
+        analyze_all_proteins = args.analyze_all_proteins
+        analyze_core_proteins = args.analyze_core_proteins
+
+        parameters = { 'analyze_all_proteins':analyze_all_proteins,
+                       'analyze_core_proteins':analyze_core_proteins
+        }
+    print(parameters)
+
+    # prepare data folders
+    data_folder = os.path.join(output_folder, 'data')
+    mapping_folder = os.path.join(output_folder, 'parsed_mappings')
+    analysis_output_folder = os.path.join(output_folder, 'output')
+
+    # save parameters as json in output folder
+    save_parameters(analysis_output_folder, parameters, debug=True)
+
+    # Run the text mining modules
+    # TODO
+
+    print("Done with analysis module.")
+    return True
+
+
+def prepare_kg(args):
+    print("Prepare knowledge graph branch, still in development")
+
+    # check if output folder is valid, otherwise create the folder
+    output_folder = parse_output_folder(args.output_folder)
+
+    # parse parameters
+    has_parameter_file = (args.parameters is not None)
+
+    if has_parameter_file:
+        param_file_name = args.parameters
+        parameters = parse_analyze_results(param_file_name)
+    else:
+        include_all_proteins = args.include_all_proteins
+        include_core_proteins = args.include_core_proteins
+        include_mesh = args.include_mesh
+        include_ppi = args.include_ppi
+        include_pw = args.include_pw
+        include_tfd = args.include_tfd
+        scale_z_score = args.scale_z_score
+        use_z_score = args.use_z_score
+
+        parameters = { "include_all_proteins":include_all_proteins,
+                       "include_core_proteins": include_core_proteins,
+                       "include_mesh": include_mesh,
+                       "include_ppi": include_ppi,
+                       "include_pw": include_pw,
+                       "include_tfd": include_tfd,
+                       "scale_z_score": scale_z_score,
+                       "use_z_score": use_z_score
+                       }
+    print(parameters)
+
+    # prepare data folders
+    data_folder = os.path.join(output_folder, 'data')
+    mapping_folder = os.path.join(output_folder, 'parsed_mappings')
+    analysis_output_folder = os.path.join(output_folder, 'output')
+
+    # save parameters as json in output folder
+    save_parameters(analysis_output_folder, parameters, debug=True)
+
+    # Run the text mining modules
+    # TODO
+
+    print("Done with prepare knowledge graph module.")
+    return True
 
 def check_file(file_name):
     # Checks to see if input file is valid.
@@ -703,8 +783,7 @@ def args_parser():
     subparser = parser.add_subparsers(dest="command")
     preprocessing = subparser.add_parser("preprocessing")
     text_mining = subparser.add_parser("text_mining")
-    kg_analysis = subparser.add_parser("kg_analysis")
-    analyze_results = subparser.add_parser("analysis_results")
+    analyze_results = subparser.add_parser("analyze_results")
     prepare_knowledge_graph = subparser.add_parser("prepare_knowledge_graph")
 
     # Add preprocess flags
@@ -744,20 +823,21 @@ def args_parser():
 
     # Add text mining flags
     # add default values here
-    text_mining.add_argument('-d date_start date_end', '--date_range date_start date_end', type=str, required=False,
+    text_mining.add_argument('-d', '--date_range', type=str, required=False,
                              default=None, help='Specify the date range for PubMed documents which will be downloaded')
     text_mining.add_argument('-f', '--full_text', type=str, required=False, default=False,
                              help='Specify to use full-text in text mining analysis or not')
     text_mining.add_argument('-i', '--impute_labels', type=str, required=False, default=False,
                              help='Whether to impute missing labels on text')
-    text_mining.add_argument('-c', '--check_synonyms', type=str, required=False, defualt=False,
+    text_mining.add_argument('-c', '--check_synonyms', type=str, required=False, default=False,
                              help='Indicating the software to halt function to screen ambiguous protein names')
-    text_mining.add_argument('-r', 'rerun_scoring', type=str, required=False, default=False,
+    text_mining.add_argument('-r', '--rerun_scoring', type=str, required=False, default=False,
                              help='Indicating the software to re-run CaseOLAP score calculation after updating synonym list')
     text_mining.add_argument('-o', '--output_folder', type=str, required=False,
                              help='Directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps')
-    text_mining.add_argument('-p', '--parameter_file', type=str, required=False,
+    text_mining.add_argument('-p', '--parameters', type=str, required=False,
                              help='Will bypass all options and run based on parameters.txt or parameters.json file')
+    text_mining.set_defaults(output_folder='.')
 
     analyze_results.add_argument('-z', '--z_score_thresh', type=float, required=False, default=3.0,
                                  help='The threshold to consider a protein as obtaining a significant score with respect to a disease category')
@@ -765,10 +845,11 @@ def args_parser():
                                  help='Analyze CaseOLAP results from all functionally related proteins')
     analyze_results.add_argument('--analyze_core_proteins', type=str, required=False, default=False,
                                  help='Analyze CaseOLAP results from only core proteins related to the cellular component')
-    analyze_results.add_argument('-o', ' output_folder', type=str, required=False,
+    analyze_results.add_argument('-o', '--output_folder', type=str, required=False,
                                  help='Directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps')
-    analyze_results.add_argument('p', 'parameter_file', type=str,
+    analyze_results.add_argument('-p', '--parameters', type=str,
                                  help='Will bypass all options and run based on parameters.txt or parameters.json file')
+    analyze_results.set_defaults(output_folder='.')
 
     prepare_knowledge_graph.add_argument('--include_tfd', type=bool, default=True,
                                          help='Indicating the software to include edges between proteins with transcription factor dependence')
@@ -776,11 +857,11 @@ def args_parser():
                                          help='Indicating the software to include edges between proteins with protein-protein interaction')
     prepare_knowledge_graph.add_argument('--include_pw', type=bool, default=True,
                                          help='Indicating the software to include Reactome pathway nodes and edges between proteins and pathways')
-    prepare_knowledge_graph.add_argument('-include_mesh', type=bool, default=True,
+    prepare_knowledge_graph.add_argument('--include_mesh', type=bool, default=True,
                                          help='Indicating the software to include the MeSH disease hierarchy')
-    prepare_knowledge_graph.add_argument('--use_z_score', type=bool,
+    prepare_knowledge_graph.add_argument('--use_z_score', type=bool, default=True,
                                          help='Use z-score transformation of CaseOLAP scores as graph edge weights')
-    prepare_knowledge_graph.add_argument('--scale_z_score', type=bool,
+    prepare_knowledge_graph.add_argument('--scale_z_score', type=bool, default=False,
                                          help='scale z-scores of CaseOLAP scores to be non-negative, to include as graph edge weights')
     prepare_knowledge_graph.add_argument('--include_all_proteins', type=bool, default=True,
                                          help='Include CaseOLAP results from all functionally related proteins')
@@ -788,11 +869,11 @@ def args_parser():
                                          help='Include CaseOLAP results from only core proteins related to the cellular component')
     prepare_knowledge_graph.add_argument('-o', '--output_folder', type=str,
                                          help='Directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps')
-    prepare_knowledge_graph.add_argument('p', 'parameter_file', type=str,
+    prepare_knowledge_graph.add_argument('-p', '--parameters', type=str,
                                          help='Will bypass all options and run based on parameters.txt or parameters.json file')
+    prepare_knowledge_graph.set_defaults(output_folder='.')
 
     return parser
-
 
 
 def main():
@@ -812,9 +893,11 @@ def main():
     if command == 'preprocessing':
         preprocessing(args)
     elif command == 'text_mining':
-        textmining(args)
-    elif command == 'analysis':
+        text_mining(args)
+    elif command == 'analyze_results':
         analysis(args)
+    elif command == 'prepare_knowledge_graph':
+        prepare_kg(args)
     else:
         parser.error("Mode not found: %s" % sys.argv)
         sys.exit(0)
