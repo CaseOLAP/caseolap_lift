@@ -17,7 +17,7 @@ Parameters
 # Input data
 root_dir = '/caseolap_lift_shared_folder/'
 data_dir = os.path.join(root_dir,'data')
-meshtree = os.path.join(data_dir,'MeSH/mtrees2022.bin')                 # MeSH Tree ontology
+meshtree = os.path.join(data_dir,'MeSH/mtrees2021.bin')                 # MeSH Tree ontology
 mesh2pmid = os.path.join(data_dir,'mesh2pmid.json') # MeSH to PMID mapping
 root_cat = os.path.join(data_dir,'categories.txt')                 # Categories' root MeSH Tree nums
 textcube_config = os.path.join(root_dir,'config/textcube_config.json')   # ['CategoryName1',...]

@@ -32,7 +32,8 @@ if __name__ == '__main__':
     index_init_config = json.load(open(index_init_config_file,'r')) 
     
     # Start elasticsearch 
-    es = Elasticsearch('https://localhost:9200') 
+    #es = Elasticsearch('https://localhost:9200') 
+    es = Elasticsearch() 
         
     # Delete the old index if it exists
     if es.indices.exists(index = index_name):
