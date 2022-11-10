@@ -24,6 +24,17 @@ from grape.edge_prediction import MLPEdgePrediction
 from grape.edge_prediction import GNNEdgePrediction
 
 
+def add_predictions_to_kg(input_df, pred_df, output_file = './kg_edges_with_predictions.csv'):
+    # format pred_df same as input_df
+    pred_df.columns = ['idx', 'weight', 'head', 'tail', 'x']
+    pred_df['relation'] = 'predicted_association'
+
+    # append predictions to kg
+    data_to_append = pred_df[['head', 'relation', 'tail', 'weight']]
+    out_df = pd.concat([input_df, data_to_append])
+    out_df.to_csv(output_file, index=False)
+
+
 def label_predictions_with_ground_truth(pred_df, test_graph, return_bool=True, directed=False):
     test_edges = set(test_graph.get_edge_node_names(directed=False))
     # consider reverse edges if directed is False

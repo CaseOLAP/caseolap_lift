@@ -92,6 +92,7 @@ def load_files(root_directory, merge_proteins, use_core_proteins):
 
     return raw_caseolap_scores, reactome_data, id_to_synonym
 
+
 def run_pathway_analysis(summary_table):
     ### cvd subproteome protein lists ###
     print("### CVD Sub-proteomes ###")
@@ -518,7 +519,7 @@ def analyze_results(root_directory, z_score_thresh=3.0, merge_proteins=True, use
     zscores_df = convert_to_zscore(df, include_zeros=False, columns_to_ignore=['entity'])
     zscores_df = zscores_df.set_index('entity')
     zscores_df.head()
-    zscores_df.to_csv(os.path.join(output_directory,"merged_caseolap_zscores.csv"), index=True) 
+    zscores_df.to_csv(os.path.join(output_directory,"merged_caseolap_zscores.csv"), index=True)
 
 
 
