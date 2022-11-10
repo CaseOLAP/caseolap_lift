@@ -224,7 +224,7 @@ def get_all_uncategorized_pmids(index_name):
     for num_pmids, entry in enumerate(es_iterate_all_documents(es, index_name)):
 
         # Publication's MeSH (if any)
-        unlabeled = (len(entry['MeSH']) == 0)
+        unlabeled = len(entry['MeSH']) == 0
         
         # Save PMIDs of unlabeled documents
         if unlabeled:
@@ -305,7 +305,7 @@ def ds_label_matching(batch_id, relevant_pmid_batch,
                       filter_list, 
                       stop_at_this_many_pmids,
                       run, test,
-                      output_folder):
+                      output_folder = '../parsed_mappings/MeSH/'):
     '''
     FUNCTION:
     - Using MeSH term synonyms, label a document with a MeSH term if the 
@@ -323,9 +323,9 @@ def ds_label_matching(batch_id, relevant_pmid_batch,
     else:
         raise Except('Did not specify if running or testing')
     
-    temp_outfile = os.path.join(output_folder, rot+'_temp_labeling'+str(batch_id)+'.txt')
+    temp_outfile = output_folder+rot+'_temp_labeling'+str(batch_id)+'.txt'
     procs = cpu_count()
-    category2permuted_synonyms = json.load(open(os.path.join(output_folder,'category2permuted_synonyms.json'),'r'))
+    category2permuted_synonyms = json.load(open(output_folder+'category2permuted_synonyms.json','r'))
     
     with open(temp_outfile,'w') as fout, \
     open(temp_outfile[:-4]+'synonym'+'.txt','w') as fout1:
@@ -381,7 +381,6 @@ def ds_label_matching(batch_id, relevant_pmid_batch,
             # Check if MeSH synonym is in the text
             for category, synonyms in category2permuted_synonyms.copy().items():
                 found_syns = set()
-                dont_add = False
                 one_syn_in_title = False
                                                     
                 # Each synonym in a set category
@@ -394,15 +393,18 @@ def ds_label_matching(batch_id, relevant_pmid_batch,
                         #continue
                         
                     # Synonym in abstract
+                    
                     if synonym.lower() in abstract.lower():
+                        add = True
+
                         # If similar synonym hasn't been counted already
                         for found_syn in found_syns:
                             fsyn = found_syn.lower().replace('\'','')
                             syn = synonym.lower()
                             if fsyn in syn or syn in fsyn:
-                                dont_add = True
+                                add = False
                                 break
-                        if not dont_add:
+                        if add:
                             found_syns.add(synonym)
                         
                     # Categorize text with 1+ synonym per category in the text
@@ -427,11 +429,10 @@ def multiprocess_ds_label_matching(pmids, index_name, index_type,
                                    label_labeled_only,
                                    label_all,
                                    filter_list,
-                                   the_function,
+                                    the_function,
                                    stop_at_this_many_pmids,
                                    run = False,
-                                   test = False,
-                                   output_folder='../parsed_mappings/MeSH/'):
+                                   test = False):
     '''
     FUNCTION:
     - This takes a list of strings and splits it into input
@@ -472,7 +473,7 @@ def multiprocess_ds_label_matching(pmids, index_name, index_type,
                                     label_all,
                                     filter_list,
                                     stop_at_this_many_pmids, 
-                                    run, test, output_folder]))
+                                    run, test]))
 
     # Run the jobs
     for j in jobs: j.start()
@@ -527,10 +528,8 @@ def merge_pmid2new_mesh_labels(run=False, test=False, output_folder = '../parsed
     print(len(pmid2imputed_category), 'PMIDs with imputed labels')
 
     # Export PMID-Category mappings to dictionaries
-    json.dump(pmid2imputed_category, 
-              open(os.path.join(output_folder, 'pmid2imputed_category.json'), 'w'))
-    json.dump(pmid2imputed_meshsynonym,
-              open(os.path.join(output_folder, 'pmid2imputed_mesh_synonym.json'), 'w'))
+    json.dump(pmid2imputed_category,open(output_folder+'pmid2imputed_category.json','w'))
+    json.dump(pmid2imputed_meshsynonym,open(output_folder+'pmid2imputed_mesh_synonym.json', 'w'))
     
     return pmid2imputed_category, pmid2imputed_meshsynonym
 
@@ -712,30 +711,30 @@ def remove_imputed_category_mesh_terms_previous_li(index_name,index_type, pmid2i
                   doc={'MeSH': mesh_terms})
        
         
-def update_textcube_files(data_folder='../data/', 
-                          config_folder='../config/',
-                          parsed_mapping_folder='../parsed_mappings'):
+def update_textcube_files(data_folder='../caseolap/data/', 
+                          config_folder='../caseolap/config/',
+                          parsed_mapping_folder='../parsed_mappings/'):
     '''
     FUNCTION:
     - Add category names to the considered MeSH Terms
     - Add pmid-category to pmid2category mapping files
     '''
-    meshterms_per_cat = json.load(open(os.path.join(data_folder,'meshterms_per_cat.json'),'r'))
+    meshterms_per_cat = json.load(open(data_folder+'meshterms_per_cat.json','r'))
     meshterms_per_cat = [set(meshlist) for meshlist in meshterms_per_cat]
 
-    category_names = json.load(open(os.path.join(config_folder,'textcube_config.json'),'r'))
+    category_names = json.load(open(config_folder+'textcube_config.json','r'))
 
     for i in range(0,len(category_names)):
         meshterms_per_cat[i].add(category_names[i])
     meshterms_per_cat = [list(meshlist) for meshlist in meshterms_per_cat]
-    json.dump(meshterms_per_cat, open(os.path.join(data_folder,'meshterms_per_cat.json'),'w'))
+    json.dump(meshterms_per_cat, open(data_folder+'meshterms_per_cat.json','w'))
     
     
-    textcube_pmid2category = json.load(open(os.path.join(data_folder,'textcube_pmid2category.json'),'r'))
-    textcube_category2pmid = json.load(open(os.path.join(data_folder,'textcube_category2pmid.json'),'r'))
+    textcube_pmid2category = json.load(open(data_folder+'textcube_pmid2category.json','r'))
+    textcube_category2pmid = json.load(open(data_folder+'textcube_category2pmid.json','r'))
 
     ''' Update textcube_category2pmid '''
-    category_names = json.load(open(os.path.join(config_folder,'textcube_config.json'),'r'))
+    category_names = json.load(open(config_folder+'textcube_config.json','r'))
     category_name2num = {name:num for num,name in enumerate(category_names)}
 
     for pmid, imputed_categories in pmid2imputed_category.items():
@@ -753,8 +752,8 @@ def update_textcube_files(data_folder='../data/',
         for pmid in pmid_list:
             new_textcube_pmid2category.append([pmid, cat_num])
 
-    json.dump(new_textcube_pmid2category, open(os.path.join(data_folder,'textcube_pmid2category.json'),'w'))
-    json.dump(textcube_category2pmid, open(os.path.join(data_folder,'textcube_category2pmid.json'),'w'))
+    json.dump(new_textcube_pmid2category, open(data_folder+'textcube_pmid2category.json','w'))
+    json.dump(textcube_category2pmid, open(data_folder+'textcube_category2pmid.json','w'))
     
     
     
@@ -817,26 +816,28 @@ index_type = args.index_type
 undo_category_label_imputation = args.undo_label_imputation
 undo_last_category_label_imputation_only = args.undo_last_label_imputation
 label_imputation = args.label_imputation
-if undo_category_label_imputation:
-    label_imputation = False
 run = args.run
 test = args.test
+STOP_AT_THIS_MANY_PMIDS = int(args.consider_this_many_pmids)
+
+if undo_category_label_imputation or undo_last_category_label_imputation_only:
+    label_imputation = False
+
 if test == True:
     run = False
-STOP_AT_THIS_MANY_PMIDS = int(args.consider_this_many_pmids)
 filter_words = ['placeholder', 'these arent used anymore']
 #['heart', 'cardiac', 'cardiovascular', 'cardiopulmonary']
               
               
               
 root_directory = '/caseolap_lift_shared_folder'
-#root_directory = '../'
+root_directory = '../'
 data_folder=os.path.join(root_directory,"data")
 config_folder=os.path.join(root_directory,"config")
 mapping_folder=os.path.join(root_directory,"parsed_mappings")
-output_folder = os.path.join(mapping_folder,'MeSH')
+output_folder = '../parsed_mappings/MeSH/'
     
-    
+
     
     
     
@@ -853,24 +854,19 @@ if label_imputation:
     '''Map MeSH ID - Name'''
     #map_disease_mesh_name_to_id()
     
-    meshterms_per_cat_file = os.path.join(data_folder,'meshterms_per_cat.json')
-    category_names_file = os.path.join(config_folder,'textcube_config.json')
-
               
     ''' Get MeSH Synonyms '''
     # Category - MeSH Terms
-    category2main_terms = map_categories2terms(output_folder = output_folder,
-                            meshterms_per_cat_file = meshterms_per_cat_file,
-                            category_names_file = category_names_file)
+    category2main_terms = map_categories2terms(output_folder = output_folder)
 
     # Category - MeSH Terms' Synonyms (including terms)
-    name2id = json.load(open(os.path.join(mapping_folder,'MeSH/meshterm-IS-meshid.json'),'r'))
-    category2main_terms = json.load(open(os.path.join(mapping_folder, 'MeSH/category2terms.json')))
+    name2id = json.load(open(os.path.join(mapping_folder,'MeSH/name2id.json'),'r'))
+    category2main_terms = json.load(open(os.path.join(data_folder, 'category2terms.json')))
     try:  category2synonym_terms = json.load(open(os.path.join(mapping_folder,'MeSH/category2synonyms.json')))
-    except: category2synonym_terms = get_mesh_synonyms_api(category2main_terms, name2id,output_folder=output_folder) 
+    except: category2synonym_terms = get_mesh_synonyms_api(category2main_terms, name2id) 
               
     # Category - permuted MeSH Terms' Synonyms
-    temp1, temp2 =  map_category_to_permuted_mesh_synonyms(category2synonym_terms,output_folder=output_folder)
+    temp1, temp2 =  map_category_to_permuted_mesh_synonyms(category2synonym_terms)
     category2permuted_synonyms = temp1
     permuted_synonyms2category = temp2
 
@@ -886,12 +882,32 @@ if label_imputation:
     if run:
         print('Running label imputation')
         
-        '''Get relevant PMIDs'''
+        '''Undo last label imputation'''
         try:
-            relevant_pmids = json.load(open(os.path.join(data_folder,'all_uncategorized_pmids.json')))
+            pmid2imp_cat_path = '../parsed_mappings/MeSH/pmid2imputed_category.json'
+            pmid2imputed_category = json.load(open(pmid2imp_cat_path))
+            try:
+                print('Removing the labels imputed last time')
+                remove_imputed_category_mesh_terms_previous_li(index_name, 
+                                                           index_type, 
+                                                           pmid2imputed_category)
+            except:
+                raise Exception('Couldnt remove the last indexed imputed labels')
+            
         except:
-            relevant_pmids = get_all_uncategorized_pmids(index_name)
-            json.dump(relevant_pmids, open(os.path.join(data_folder,'all_uncategorized_pmids.json'),'w'))
+            print('No previous label imputation')
+        
+
+            
+        '''Get relevant PMIDs'''
+        #try:
+        #relevant_pmids = json.load(open(data_folder+'all_uncategorized_pmids.json'))
+        #except:
+        relevant_pmids = get_all_uncategorized_pmids(index_name)
+        json.dump(relevant_pmids, open(data_folder+'all_uncategorized_pmids.json','w'))
+    
+        print(len(relevant_pmids), 'relevant pmids')
+        print('35745735' in relevant_pmids, '35745735')
 
             
         ''' Impute missing MeSH labels '''
@@ -905,16 +921,15 @@ if label_imputation:
                                        filter_list = filter_words,
                                        stop_at_this_many_pmids = STOP_AT_THIS_MANY_PMIDS,
                                        the_function = ds_label_matching,
-                                       output_folder = output_folder,
                                        run = True)
-        pmid2imputed_category, pmid2imputed_meshsynonym = merge_pmid2new_mesh_labels(run=True,output_folder=output_folder)
+        pmid2imputed_category, pmid2imputed_meshsynonym = merge_pmid2new_mesh_labels(run=True)
 
 
         # Index the imputed MeSH categories into their PMID entries
         index_imputed_mesh_categories(index_name=index_name, index_type=index_type)
 
         # Update the MeSH Terms Per Category file for the textcube
-        update_textcube_files(data_folder=data_folder, config_folder=config_folder, parsed_mapping_folder=mapping_folder)
+        update_textcube_files()
         
         
         
@@ -967,15 +982,12 @@ if label_imputation:
               
         
         
-root_directory = '.'
-root_directory = '/caseolap_lift_shared_folder'
-config_file = os.path.join(root_directory,'config/textcube_config.json')
-pmid2imputed_category_file = os.path.join(root_directory,'data/pmid2imputed_category.json')
+    
 ''' Undo label imputation '''
 # Undo all LI attemps
 if undo_category_label_imputation:
     try:
-        category_names = json.load(open(config_file,'r')) 
+        category_names = json.load(open('../config/textcube_config.json','r')) 
         print('Removing imputed labels:', category_names)
         remove_imputed_category_mesh_terms(index_name, index_type, category_names)
     except:
@@ -985,7 +997,7 @@ if undo_category_label_imputation:
 # Undo last LI attempt (only works for one time. Repeating this will not undo more)
 if undo_last_category_label_imputation_only:
     try:
-        pmid2imputed_category = json.load(open(pmid2imputed_category_file))
+        pmid2imputed_category = json.load(open('../parsed_mappings/MeSH/pmid2imputed_category.json'))
         remove_imputed_category_mesh_terms_previous_li(index_name, index_type, pmid2imputed_category)
     except:
         raise Exception('Check that you have performed label imputation and thus have the'+\
