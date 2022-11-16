@@ -13,45 +13,48 @@ def parse_mesh_tree(mesh_tree_file):
     mesh_term_to_code = {a:b for a,b in [l.split(";") for l in lines]}
     return mesh_term_to_code
     
-def mesh2triples(mesh_tree_to_id_file, mesh_tree_file, cvd_to_mesh_term_file):
+def mesh2triples(mesh_tree_to_id_file, mesh_tree_file, cvd_to_mesh_term_file, include_MeSH: bool):
     # reformat data into the following
     data = {h:[] for h in ['head','relation','tail','edge_type','weight']}
-    
+
     # load the files
     mesh_tree_to_id_df = pd.read_csv(mesh_tree_to_id_file)
-    mesh_tree_df = pd.read_csv(mesh_tree_file)    
-    
-    # make the mesh tree hierarchy
-    for from_node, to_node in zip(mesh_tree_df['Disease (MeSH Tree)'], mesh_tree_df['Disease (MeSH Tree).1']):
-        from_node_ = "MeSH_Tree_Disease:"+str(from_node)
-        to_node_ = "MeSH_Tree_Disease:"+str(to_node)
-        data['head'] += [from_node_]
-        data['relation'] += [len(data['relation'])]
-        data['tail'] += [to_node_]
-        data['edge_type'] += ['MeSH_hierarchy']
-        data['weight'] += [1]
-    
-    # the mesh tree node to mesh term mapping
-    for from_node, to_node in zip(mesh_tree_to_id_df['Disease (MeSH Tree)'], mesh_tree_to_id_df['Disease (MeSH)']):
-        data['head'] += [from_node]
-        data['relation'] += [len(data['relation'])]
-        data['tail'] += [to_node]
-        data['edge_type'] += ['MeSH_is']
-        data['weight'] += [1]
-        
-    # mapping 8CVDs to MeSH terms
+    mesh_tree_df = pd.read_csv(mesh_tree_file)
+
+    #head and tail for the first df
+    head_mesh_tree_df = [str(i) for i in mesh_tree_df['Disease (MeSH Tree)'].to_list()]
+    tail_mesh_tree_df = [str(i) for i in mesh_tree_df['Disease (MeSH Tree).1'].to_list()]
+    relation_mesh_tree_df = ['MeSH_hierarchy' for i in tail_mesh_tree_df]
+
+    #head and tail for the second df
+    head_mesh_tree_to_id_df = [str(i) for i in mesh_tree_to_id_df['Disease (MeSH Tree)'].to_list()]
+    tail_mesh_tree_to_id_df = [str(i) for i in mesh_tree_to_id_df['Disease (MeSH)'].to_list()]
+    relation_mesh_tree_to_id_df = ['MeSH_is' for i in tail_mesh_tree_to_id_df]
+
+    # head and tail for cvd -- mesh term mapping
     cvd_to_mesh_lines = [l.strip("\n") for l in open(cvd_to_mesh_term_file,"r").readlines()]
-    cvd_to_mesh = {c:m.split(" ") for c,m in zip(['CM','ARR','CHD','VD','IHD','CCD','VOO','OTH'],cvd_to_mesh_lines)} #TODO 8CVDs need to be generalized
+    cvd_to_mesh = {c:m.split(" ") for c,m in zip(['CM','ARR','CHD','VD','IHD','CCD','VOO','OTH'],cvd_to_mesh_lines)}
+
+    head_cvd_mesh = []
+    tail_cvd_mesh = []
+    #iterate over dict
     for cvd, mesh_terms in cvd_to_mesh.items():
         for m in mesh_terms:
-            mesh = "MeSH_Tree_Disease:"+str(m)
-            data['head'] += [cvd]
-            data['relation'] += [len(data['relation'])]
-            data['tail'] += [mesh]
-            data['edge_type'] += ['MeSH_CVD']
-            data['weight'] += [1]
+            mesh = "MeSH_Tree_Disease:" + str(m)
+            head_cvd_mesh.append(cvd)
+            tail_cvd_mesh.append(mesh)
+    relation_cvd_mesh = ["MeSH_CVD" for i in head_cvd_mesh]
 
-    mesh_kg = pd.DataFrame(data)
-    mesh_kg["relation"] = mesh_kg["edge_type"]
-    mesh_kg = mesh_kg.drop(columns = ["edge_type"])
+    #combine final head column
+    head = head_mesh_tree_df + head_mesh_tree_to_id_df + head_cvd_mesh
+    tail = tail_mesh_tree_df + tail_mesh_tree_to_id_df + tail_cvd_mesh
+    relation = relation_mesh_tree_df + relation_mesh_tree_to_id_df + relation_cvd_mesh
+    weight = [1 for i in relation]
+
+    mesh_kg = pd.DataFrame({"head" : head, "relation" : relation, "tail" : tail, "weight" : weight})
+
+    #choose whether to include mesh tree or not
+    if include_MeSH == False:
+        mesh_kg = mesh_kg[mesh_kg["relation"] != "MeSH_hierarchy"]
+    
     return mesh_kg

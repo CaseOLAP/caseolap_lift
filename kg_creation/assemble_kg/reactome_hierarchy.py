@@ -15,9 +15,12 @@ def reactome2reactome(reactome_hierarchy) -> pd.DataFrame:
 
     head = [i for i in reactome_hierarchy_kg["head"] if "R-HSA" in i]
     tail = [i for i in reactome_hierarchy_kg["tail"] if "R-HSA" in i]
-        
-    reactome_hierarchy_kg = pd.DataFrame({"head" : head, "tail" : tail})
 
+
+    reactome_hierarchy_kg = pd.DataFrame()
+
+    reactome_hierarchy_kg["head"] = head
     reactome_hierarchy_kg["relation"] = "Reactome_Hierarchy"
+    reactome_hierarchy_kg["tail"] = tail
     reactome_hierarchy_kg["weight"] = 1
     return reactome_hierarchy_kg

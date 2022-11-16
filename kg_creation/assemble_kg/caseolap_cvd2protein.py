@@ -2,12 +2,21 @@ import pandas as pd
 import os
 
 from tqdm import tqdm
+from scipy.stats import zscore
 
 
-def caseolap2triples(caseolap_csv_file: os.path) -> pd.DataFrame:
+def caseolap2triples(caseolap_csv_file: os.path, SCALING = "none") -> pd.DataFrame:
     """
     creates triples out of caseolap dataframe
+
+    ARGS:
+        caseolap_csv: csv file to build caseolap triples
+        SCALING: choose one of the following ["none", "z-score", "z-score+1"]
+    
+    RETURNS:
+        caseolap kg with triples
     """
+    
     caseolap_df = pd.read_csv(caseolap_csv_file)
     caseolap_df = caseolap_df
     cvd_type = caseolap_df.columns.to_list()
@@ -29,6 +38,15 @@ def caseolap2triples(caseolap_csv_file: os.path) -> pd.DataFrame:
 
         #update master kg
         caseolap_kg = pd.concat([caseolap_kg, holder_df])
+
+    if SCALING == "z-score":
+        caseolap_kg["weight"] = zscore(caseolap_kg["weight"])
+
+    elif SCALING == "z-score+1":
+        caseolap_kg["weight"] = zscore(caseolap_kg["weight"]) + 1
+
+    else:
+        pass
 
     caseolap_kg = caseolap_kg[caseolap_kg["weight"] != 0]
     return caseolap_kg
