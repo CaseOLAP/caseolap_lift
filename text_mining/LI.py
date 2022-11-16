@@ -844,7 +844,7 @@ output_folder = os.path.join(mapping_folder,'MeSH')
 if label_imputation:
 
     '''Map MeSH ID - Name'''
-    #map_disease_mesh_name_to_id()
+    map_disease_mesh_name_to_id()
 
 
     meshterms_per_cat_file = os.path.join(data_folder,'meshterms_per_cat.json')
@@ -878,12 +878,28 @@ if label_imputation:
     
     if run:
         print('Running label imputation')
-        
+
+        '''Undo last label imputation'''
+        try:
+            pmid2imp_cat_path = os.path.join(mapping_folder,'MeSH/pmid2imputed_category.json')
+            pmid2imputed_category = json.load(open(pmid2imp_cat_path))
+            try:
+                print('Removing the labels imputed last time')
+                remove_imputed_category_mesh_terms_previous_li(index_name,
+                                                               index_type,
+                                                               pmid2imputed_category)
+            except:
+                raise Exception('Couldnt remove the last indexed imputed labels')
+
+        except:
+            print('No previous label imputation')
+
+
         '''Get relevant PMIDs'''
-        #try:
-        #    relevant_pmids = json.load(open(data_folder+'all_uncategorized_pmids.json'))
-        #except:
-        relevant_pmids = get_all_uncategorized_pmids(index_name)
+        try:
+           relevant_pmids = json.load(open(data_folder+'all_uncategorized_pmids.json'))
+        except:
+            relevant_pmids = get_all_uncategorized_pmids(index_name)
         json.dump(relevant_pmids, open(os.path.join(data_folder,'all_uncategorized_pmids.json'),'w'))
     
         print(len(relevant_pmids), 'relevant pmids')
@@ -953,7 +969,7 @@ if label_imputation:
         except:
             pmid2real_categories = ['']
         if len(pmid2real_categories) != STOP_AT_THIS_MANY_PMIDS:
-            pmid2real_categories = get_groundtruth_pmid2categories(relevant_pmid_batch, index_name, index_type, permuted_synonyms2category)
+            pmid2real_categories = get_groundtruth_pmid2categories(relevant_pmids, index_name, index_type, permuted_synonyms2category)
             json.dump(pmid2real_categories, open(output_folder+'/pmid2real_categories.json','w'))
 
         # Evaluate results on ground truth
