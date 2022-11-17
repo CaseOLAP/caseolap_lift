@@ -61,13 +61,15 @@ class caseolapLIFT_knowledge_graph:
 
         #mesh (downloaded from irsyad-setup.py)
         mesh_tree_file = ROOT + "/data/MeSH/mtrees2021.bin"
-        categories_file = ROOT + "/caseolap/input/categories.txt" 
+        # categories_file = ROOT + "/caseolap/input/categories.txt"
+        categories_file = ROOT + "/scratch/categories.txt"
 
         mesh_tree_to_mesh_id_file = ROOT + "/parsed_mappings/MeSH/edges_meshtree-IS-meshid_disease.csv"
         edges_meshtree2meshtree_hierarchy = ROOT + "/parsed_mappings/MeSH/edges_meshtree_to_meshtree.csv"
 
         #caseolap
-        caseolap_csv = ROOT + "/caseolap/result/all_proteins/all_caseolap.csv"
+        # caseolap_csv = ROOT + "/caseolap/result/all_proteins/all_caseolap.csv"
+        caseolap_csv = ROOT + '/scratch/all_caseolap.csv'
 
         #reactome
         protein2pathway = ROOT + "/output/kg/reactome_edges.csv"
@@ -79,8 +81,7 @@ class caseolapLIFT_knowledge_graph:
         string_edge = ROOT + "/output/kg/string_ppi.csv"
 
         #transcription factor dependence
-        tf_edge = ROOT + "/data/target_protein_id_2_tf_protein_id.json"
-
+        tf_edge = ROOT + "/output/kg/target_protein_id_2_tf_protein_id.json"
 
         print("\ncaseolapLIFT KG creation")
 

@@ -101,7 +101,7 @@ def get_interacting_partners(proteins, k=1, score_thresh=0.975,
 
     # output edges to kg
     if output_folder:
-        output_file = os.path.join(output_folder, "string_ppi.csv")
+        output_file = os.path.join(output_folder, "kg/string_ppi.csv")
         string_triples.to_csv(output_file, index=False)
 
     # TODO remake added_uniprot_ids to only include those in the kg edges

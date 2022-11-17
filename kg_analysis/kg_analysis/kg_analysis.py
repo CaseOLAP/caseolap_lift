@@ -24,16 +24,28 @@ from grape.edge_prediction import MLPEdgePrediction
 from grape.edge_prediction import GNNEdgePrediction
 
 
-def add_predictions_to_kg(input_df, pred_df, output_file = './kg_edges_with_predictions.csv'):
+def add_predictions_to_kg(input_df, pred_df, output_folder='./results/kg_analysis/',debug=False):
     # format pred_df same as input_df
-    pred_df.columns = ['idx', 'weight', 'head', 'tail', 'x']
+    pred_df.columns = ['idx','weight', 'head', 'tail', 'x']
+
+    caseolap_edges = input_df[input_df['relation'] == 'CaseOLAP_score']
+    caseolap_pairs = set(zip(caseolap_edges['head'], caseolap_edges['tail']))
+    mask = [False if pair in caseolap_pairs else True for pair in
+            zip(pred_df['head'], pred_df['tail'])]
     pred_df['relation'] = 'predicted_association'
+    non_overlapping_filtered_pred_df = pred_df[mask]
+    # non_overlapping_filtered_pred_df['relation'] = 'predicted_association'
 
     # append predictions to kg
-    data_to_append = pred_df[['head', 'relation', 'tail', 'weight']]
+    data_to_append = non_overlapping_filtered_pred_df[['head', 'relation', 'tail', 'weight']]
     out_df = pd.concat([input_df, data_to_append])
+
+    output_file = os.path.join(output_folder,'kg_edges_with_predictions.csv')
     out_df.to_csv(output_file, index=False)
 
+    if debug:
+        print("%d predictions added"%(out_df.shape[0]-input_df.shape[0]))
+        print("Predictions saved to %s"%(output_file))
 
 def label_predictions_with_ground_truth(pred_df, test_graph, return_bool=True, directed=False):
     test_edges = set(test_graph.get_edge_node_names(directed=False))
