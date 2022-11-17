@@ -694,7 +694,8 @@ def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_
     for resource, missing_file in missing_mappings.items():
 
         if missing_file:
-            print("Missing file for %s"%resource)
+            if debug:
+                print("Missing file for %s"%resource)
             # parse mappings if missing
             if resource == 'GO':
                 if debug:
@@ -763,7 +764,7 @@ def prepare_go_mappings(input_folder = '../data/GO/', output_folder = '../parsed
 
 def prepare_knowledge_base_data(data_folder, mapping_folder, file_to_link_file,
                                 include_reactome=True, include_tfd = True,
-                                redownload=False, debug=False):
+                                redownload=False, remap=False, debug=False):
     '''
     This function checks the data_folder and mapping_folder if the required files are downloaded and parsed, respectively.
     redownload flag means it will delete/overwrite existing files
@@ -820,6 +821,14 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, file_to_link_file,
 
     ### Parsing data ###
     resource_to_processed_file_bool, processed_files_complete = check_required_files(processed_files, mapping_folder, debug=debug)
+    # force remapping if flagged
+    if remap:
+        temp_resource_map = {}
+        for resource, file_map_dict in resource_to_processed_file_bool.items():
+            temp_resource_map[resource] = {k:False for k in file_map_dict.keys()}
+        resource_to_processed_file_bool = temp_resource_map
+        # resource_to_processed_file_bool = {resource{mfile:False} for  in resource_to_processed_file_bool.keys()}
+        processed_files_complete = False
     if redownload or not processed_files_complete:
         # process files
         parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_folder,debug=debug)

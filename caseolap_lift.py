@@ -238,7 +238,7 @@ def preprocessing(args, debug=False):
     successful = prepare_knowledge_base_data(data_folder, mapping_folder, file_to_link_file,
                                              include_reactome=parameters['include_reactome'],
                                              include_tfd=parameters['include_tfd'],
-                                             redownload=False, debug=debug)
+                                             redownload=False, remap=True, debug=debug)
 
     if successful:
         print("Knowledge base data successfully downloaded and mapped.")
