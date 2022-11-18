@@ -51,9 +51,9 @@ eval_df.to_csv(eval_output)
 filtered_pred_df.to_csv(predictions_output,)
 print("Number of predicted edges: %f"%filtered_pred_df.shape[0])
 print("Number of unique proteins w/ predictions: %f"%len(set(filtered_pred_df['destinations'])))
-input_edges = pd.read_csv(edge_path, sep="\t")
 
 ## we were missing some protein-pathway relationships. Adding them now #TODO move this to kg creation
+input_edges = pd.read_csv(edge_path, sep="\t")
 added_pw_relations = pd.read_csv('../scratch/added_pathway_relations.csv')
 added_pw_relations['weight'] = 1.0
 merged_input_edges = input_edges.merge(added_pw_relations,on=['head','tail'],how='outer',indicator=True)
@@ -62,5 +62,6 @@ rels_to_add = missing_pw_df[['head','relation_y','tail','weight_y']]
 rels_to_add.columns = ['head','relation','tail','weight']
 input_edges = pd.concat([input_edges, rels_to_add])
 
-#filtered_pred_df = pd.read_csv(predictions_output)
+filtered_pred_df = pd.read_csv(predictions_output)
+print(filtered_pred_df.shape)
 add_predictions_to_kg(input_edges,filtered_pred_df, output_folder=output_folder,debug=True)

@@ -60,7 +60,7 @@ class caseolapLIFT_knowledge_graph:
         ROOT = ".."
 
         #mesh (downloaded from irsyad-setup.py)
-        mesh_tree_file = ROOT + "/data/MeSH/mtrees2021.bin"
+        mesh_tree_file = ROOT + "/data/MeSH/mtrees2022.bin"
         # categories_file = ROOT + "/caseolap/input/categories.txt"
         categories_file = ROOT + "/scratch/categories.txt"
 
@@ -90,9 +90,9 @@ class caseolapLIFT_knowledge_graph:
         print("\nfinding required files for assembly...")
 
         if os.path.exists(mesh_tree_file):
-            print("\tmtrees2021.bin found")
+            print("\tmtrees2022.bin found")
         else:
-            print("\tERROR: mtrees2021.bin not found")
+            print("\tERROR: mtrees2022.bin not found")
             exit()
 
         if os.path.exists(mesh_tree_to_mesh_id_file):
