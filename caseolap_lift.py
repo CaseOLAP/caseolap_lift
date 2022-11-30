@@ -7,6 +7,7 @@ from pathlib import Path
 from preprocessing.prepare_knowledge_base_data import  download_data,prepare_knowledge_base_data
 import json
 from preprocessing.entity_set_expansion import prepare_subcellular_compartment_proteins
+from text_mining import *
 from analysis.run_analyse_results import analyze_results
 
 from utils.FileConverter import *
@@ -267,14 +268,12 @@ def preprocessing(args, debug=False):
 
 def check_date(date):
     # Checks to see if date a valid input.
-    # TODO (completed?)
 
-    #string entered as mm-dd-yyyy or mm/dd/yy
-    month, day, year = date.split('-')
-
+    #string entered as YYYY-MM-DD
+    year, month, day, = date.split('-')
     valid = True
     try:
-        datetime.datetime(int(year), int(month), int(day))
+        datetime.datetime(year=int(year), month=int(month), day=int(day))
     except ValueError:
         valid = False
 
@@ -287,8 +286,9 @@ def parse_range(date_range):
         return
 
     # account for a none value getting put in from the default
-    # example date range: 10-24-2022 11-23-2025
-    date_from, date_to = date_range.split(" ")
+    # example date range: 2022-10-24,2025-11-23
+    date_range = date_range.replace('"', '').replace('\'', '')
+    date_from, date_to = date_range.split(",")
 
     if check_date(date_from) and check_date(date_to):
         return (date_from, date_to)
@@ -346,7 +346,14 @@ def text_mining(args):
     save_parameters(analysis_output_folder, parameters,debug=True)
 
     # Run the text mining modules
-    #TODO
+    ent_parameters = {'go-term': parameters['cellular_components'],
+                      }
+    prepare_subcellular_compartment_proteins(ent_parameters,
+                                             mapping_folder=mapping_folder,
+                                             output_folder=analysis_output_folder, debug=False)
+
+    01_run_download
+
 
     print("Done with text mining module.")
     return True
@@ -685,12 +692,15 @@ class MyParser(argparse.ArgumentParser):
         sys.exit(2)
 
 
-def add_bool_arg(parser, name, default=False, help=''):
+def add_bool_arg(parser, name, default=False, single_flag=None, help=''):
     ''' source: https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse'''
     help_str_feature = help+' Default: %s' % (str(default))
     help_str_no_feature = help+' Default: %s'%(str(not default))
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--' + name, dest=name, action='store_true', help=help_str_feature)
+    if single_flag is not None:
+        group.add_argument(single_flag,'--' + name, dest=name, action='store_true', help=help_str_feature)
+    else:
+        group.add_argument('--' + name, dest=name, action='store_true', help=help_str_feature)
     group.add_argument('--no-' + name.replace('include-',''), dest=name, action='store_false',help=help_str_no_feature)
     parser.set_defaults(**{name:default})
 
@@ -759,9 +769,9 @@ def args_parser():
     # add default values here
     text_mining.add_argument('-d', '--date_range', type=str, required=False,
                              default=None, help='Specify the date range for PubMed documents which will be downloaded')
-    add_bool_arg(text_mining, 'include-full-text', default=False,
+    add_bool_arg(text_mining, 'include-full-text', default=False, single_flag='-t',
                  help='Specify to use full-text in text mining analysis or not')
-    add_bool_arg(text_mining, 'include-label-imputation', default=False,
+    add_bool_arg(text_mining, 'include-label-imputation', default=False, single_flag='-l',
                  help='Whether to impute missing labels on text')
     text_mining.add_argument('-c', '--check_synonyms', type=bool, required=False, default=False,
                              help='Indicating the software to halt function to screen ambiguous protein names')
