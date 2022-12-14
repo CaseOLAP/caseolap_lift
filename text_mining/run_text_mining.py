@@ -21,175 +21,241 @@ from text_mining.caseolap._11_metadata_update import *
 from text_mining.caseolap._12_caseolap_score import *
 from text_mining.caseolap._13_inspect_entity_scores import *
 
-'''
-Parameters
-'''
 
-root_dir = '/caseolap_lift_shared_folder/'
-data_dir = os.path.join(root_dir,'data')
-result_dir = os.path.join(root_dir,'result') # Main folder where the results from this section will be stored
-log_dir = os.path.join(root_dir,'log')
-config_dir = os.path.join(root_dir,'config')
-input_dir = os.path.join(root_dir,'input') #TODO how is input folder different?
+def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folder,
+                    date_range=None,
+                    include_full_text=False,
+                    include_label_imputation=False,
+                    check_synonyms=False,
+                    rerun_scoring=False):
 
-# Input 01
-logFilePath = os.path.join(log_dir,'download_log.txt')
-baseline_dir = os.path.join(data_dir, 'ftp.ncbi.nlm.nih.gov/pubmed/baseline/') # Documents prior to this year
-update_files_dir = os.path.join(data_dir,'ftp.ncbi.nlm.nih.gov/pubmed/updatefiles/') # Documents prior to this year
-
-download_config_file_path = os.path.join(config_dir,'download_config.json')
-ftp_config_file_path = os.path.join(config_dir,'ftp_config.json')
+    # directories
+    # data_dir = os.path.join(root_dir,'data')
+    # result_dir = os.path.join(root_dir,'result') # Main folder where the results from this section will be stored
+    log_dir = os.path.join(root_dir,'log')
+    config_dir = os.path.join(root_dir,'config')
+    input_dir = os.path.join(root_dir,'input') #TODO how is input folder different?
 
 
-# Input 02
-parsing_config_file = os.path.join(config_dir,'parsing_config.json')
+    # Input 01
+    logFilePath = os.path.join(log_dir,'download_log.txt')
+    baseline_dir = os.path.join(data_folder, 'ftp.ncbi.nlm.nih.gov/pubmed/baseline/') # Documents prior to this year
+    update_files_dir = os.path.join(data_folder,'ftp.ncbi.nlm.nih.gov/pubmed/updatefiles/') # Documents prior to this year
 
-# Output 02
-pubmed_path = os.path.join(data_dir,'pubmed.json')     # The parsed PubMed documents (dictionary)
-filestat_path = os.path.join(data_dir,'filestat.json') # Unzipped PubMed download file name : #PMIDs
-logfile_path = os.path.join(log_dir,'parsing_log.txt') # Logs progress on parsing
+    download_config_file_path = os.path.join(config_dir,'download_config.json')
+    ftp_config_file_path = os.path.join(config_dir,'ftp_config.json')
 
+    # Input 02
+    parsing_config_file = os.path.join(config_dir,'parsing_config.json')
 
-### Input 03
-
-### Output 03
-mesh2pmid_outputfile = os.path.join(data_dir,"mesh2pmid.json" )   # {"MeSH Term":[PMID1,...], ...}
-mesh2pmid_statfile = os.path.join(data_dir,"mesh2pmid_stat.json") # {"MeSH Term": #PMIDs, ...}
-logFilePath = os.path.join(log_dir,'mesh2pmid_log.txt')           # Logs mapping progress
-
-
-# Index parameters 04
-index_name = 'pubmed_lift'      # Index name (match with 05 index populate file)
-type_name = 'pubmed_meta_lift'  # Index type name (match with 05 index populate file)
-number_shards = 1          # Set to 1 if no cluster
-number_replicas = 0
-case_sensitive = True   # Index the text as case sensitive (True) or lower case (False)
-
-# Input file 04
-index_init_config_file = os.path.join(config_dir,'index_init_config.json')
+    # Output 02
+    pubmed_path = os.path.join(data_folder,'pubmed.json')     # The parsed PubMed documents (dictionary)
+    filestat_path = os.path.join(data_folder,'filestat.json') # Unzipped PubMed download file name : #PMIDs
+    logfile_path = os.path.join(log_dir,'parsing_log.txt') # Logs progress on parsing
 
 
-# Input 05
-index_populate_config_file = os.path.join(config_dir,'index_populate_config.json')
+    ### Input 03
 
-# Output 05
-logfile_path = os.path.join(log_dir,'indexing_log.txt')            # Reports progress on indexing
-
-# Names of the index you want to create 05
-
-# Input data 06
-meshtree = os.path.join(data_dir,'MeSH/mtrees2021.bin')                 # MeSH Tree ontology
-root_cat = os.path.join(data_dir,'categories.txt')                 # Categories' root MeSH Tree nums
-textcube_config = os.path.join(config_dir,'textcube_config.json')   # ['CategoryName1',...]
-mesh2pmid = mesh2pmid_outputfile # from step 2
-
-# Output data directories 06
-textcube_pmid2category = os.path.join(data_dir,'textcube_pmid2category.json') # Map PMID to category
-textcube_category2pmid = os.path.join(data_dir,'textcube_category2pmid.json') # Map category to PMID
-textcube_stat = os.path.join(data_dir,'textcube_stat.txt')                    # Num. documents per category
-MeSHterms_percat = os.path.join(data_dir,'meshterms_per_cat.json')            # MeSH *Terms* per category
-logfile_path = os.path.join(log_dir,'textcube_log.txt')                       # Logs file's messages
+    ### Output 03
+    mesh2pmid_outputfile = os.path.join(data_folder,"mesh2pmid.json" )   # {"MeSH Term":[PMID1,...], ...}
+    mesh2pmid_statfile = os.path.join(data_folder,"mesh2pmid_stat.json") # {"MeSH Term": #PMIDs, ...}
+    logFilePath = os.path.join(log_dir,'mesh2pmid_log.txt')           # Logs mapping progress
 
 
-# Input 07
-entity_dict_path = os.path.join(input_dir,'id2syns_not_case_varied.json') # entity dict
-species = ['human', 'pig', 'mouse', 'rat']  # Species studied. Used for permuting syns.
+    # Index parameters 04
+    index_name = 'pubmed_lift'      # Index name (match with 05 index populate file)
+    type_name = 'pubmed_meta_lift'  # Index type name (match with 05 index populate file)
+    number_shards = 1          # Set to 1 if no cluster
+    number_replicas = 0
+    case_sensitive = True   # Index the text as case sensitive (True) or lower case (False)
 
-# Output 07
-case_varied_entites_outpath = os.path.join(data_dir,'casesensitive_entities.txt') # Case sensitive entity dict
-case_varied_entity_dict_path = os.path.join(input_dir,'id2syns.json') # entity dict
-
-
-# Input 08
-entity_dict_path = 'input/id2syns.json'
-textcube_pmid2category = os.path.join(data_dir,'textcube_pmid2category.json')
-start_year = 2012    # <-- Change as you see fit for your publications of interest
-end_year = 2022      # <-- Same as above comment
-
-# Intermediary file (produced as output, used as input) 08
-syn_pmid_count = os.path.join(data_dir,'syn_pmid_count.txt')
-
-# Output 08
-pmid_syn_count_out = os.path.join(data_dir,'pmid_synonym_counts_2012-2022.json')   # PMID Syn|Count...Syn|Cnt
-synfound_pmid2cat = os.path.join(data_dir,'synfound_pmid2category_2012-2022.txt')  # PMID--->CategoryNumber
-logfile = os.path.join(log_dir,'synonymcount_log_2012-2022.txt')                   # #hits:Synonym
+    # Input file 04
+    index_init_config_file = os.path.join(config_dir,'index_init_config.json')
 
 
-# Input 09
-id2syns = os.path.join(input_dir,'id2syns.json')
+    # Input 05
+    index_populate_config_file = os.path.join(config_dir,'index_populate_config.json')
 
-# Output 09
-eng_path = os.path.join(data_dir,'suspect_synonyms_english_words.txt')  # Ambiguous syns: English word
-short_path = os.path.join(data_dir,'suspect_synonyms_too_short.txt')  # Ambiguous syns: Short words
-rem_path = os.path.join(data_dir,'remove_these_synonyms.txt')         # Synonyms to remove
+    # Output 05
+    logfile_path = os.path.join(log_dir,'indexing_log.txt')            # Reports progress on indexing
 
+    # Names of the index you want to create 05
 
-# Other parameters 09
-index_name = 'pubmed_lift' # Index name
-key = 'abstract'        # Choose if searching the abstracts and titles
-key = 'full_text'      # Choose if searchines the abstracts, titles, and full text
-key = 'full_text_no_methods' # Same as above, excluding abstracts
+    # Input data 06
+    meshtree = os.path.join(data_folder,'MeSH/mtrees2021.bin')                 # MeSH Tree ontology
+    root_cat = os.path.join(data_folder,'categories.txt')                 # Categories' root MeSH Tree nums
+    textcube_config = os.path.join(config_dir,'textcube_config.json')   # ['CategoryName1',...]
+    mesh2pmid = mesh2pmid_outputfile # from step 2
 
-
-
-# Input 10
-remove_syns_infile = os.path.join(data_dir,'remove_these_synonyms.txt')
-all_id2syns_path = os.path.join(input_dir,'id2syns.json')
-core_id2syns_path = os.path.join(input_dir,'core_id2syns.json')
-pmid_syn_count_in = os.path.join(data_dir,'pmid_synonym_counts_2012-2022.json')
-
-# Output 10
-all_entitycount_outfile = os.path.join(data_dir,'all_entitycount_2012-2022.txt')
-core_entitycount_outfile = os.path.join(data_dir,'core_entitycount_2012-2022.txt')
+    # Output data directories 06
+    textcube_pmid2category = os.path.join(data_folder,'textcube_pmid2category.json') # Map PMID to category
+    textcube_category2pmid = os.path.join(data_folder,'textcube_category2pmid.json') # Map category to PMID
+    textcube_stat = os.path.join(data_folder,'textcube_stat.txt')                    # Num. documents per category
+    MeSHterms_percat = os.path.join(data_folder,'meshterms_per_cat.json')            # MeSH *Terms* per category
+    logfile_path = os.path.join(log_dir,'textcube_log.txt')                       # Logs file's messages
 
 
+    # Input 07
+    entity_dict_path = os.path.join(input_dir,'id2syns_not_case_varied.json') # entity dict
+    species = ['human', 'pig', 'mouse', 'rat']  # Species studied. Used for permuting syns.
 
-# Input file paths 11
-all_entitycount_path = os.path.join(data_dir,'all_entitycount_2012-2022.txt')              # PMID Entity|Count ...
-core_entitycount_path = os.path.join(data_dir,'core_entitycount_2012-2022.txt')              # PMID Entity|Count ...
-pmid2category_path = os.path.join(data_dir,'textcube_pmid2category.json')# PMIDs of interest to category
-category_names_file = os.path.join(config_dir,'textcube_config.json')  # Category names
-
-
-# Output file paths 11
-all_outfile_pmid2entity2count = os.path.join(data_dir,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
-core_outfile_pmid2entity2count = os.path.join(data_dir,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
-cat2pmids_path = os.path.join(data_dir,'metadata_category2pmids_2012-2022.json')   # {CatName:[PMID,...], ...}
-all_logfile_path = os.path.join(log_dir,'all_metadata_update_log_2012-2022.txt')         # Similar to pmid2pcount
-core_logfile_path = os.path.join(log_dir,'core_metadata_update_log_2012-2022.txt')         # Similar to pmid2pcount
+    # Output 07
+    case_varied_entites_outpath = os.path.join(data_folder,'casesensitive_entities.txt') # Case sensitive entity dict
+    case_varied_entity_dict_path = os.path.join(input_dir,'id2syns.json') # entity dict
 
 
-# Input data directories 12
-cat2pmids_path = os.path.join(data_dir,'metadata_category2pmids_2012-2022.json') # {CategoryName:[PMID,...],...}
-all_pmid2entity2count_path = os.path.join(data_dir,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
-core_pmid2entity2count_path = os.path.join(data_dir,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
-category_names_path = os.path.join(config_dir,'textcube_config.json')    # ['CategoryName1',...]
-config_dir
-# Output data path 12
-all_logFilePath = os.path.join(log_dir,'all_caseolap_score_log.txt') # Logs #PMIDs for each category
-core_logFilePath = os.path.join(log_dir,'core_caseolap_score_log.txt') # Logs #PMIDs for each category
-all_caseolap_name = 'all_caseolap'  # Name of dataframe/spreadsheet for the caseolap scores
-core_caseolap_name = 'core_caseolap'
+    # Input 08
+    entity_dict_path = 'input/id2syns.json'
+    textcube_pmid2category = os.path.join(data_folder,'textcube_pmid2category.json')
+    if date_range != None:
+        start_year = int(date_range[0].split("-")[0])
+        end_year = int(date_range[1].split("-")[0])
+    else:
+        start_year = 1800
+        end_year = 2022
+        # TODO
+    # start_year = 2012    # <-- Change as you see fit for your publications of interest
+    # end_year = 2022      # <-- Same as above comment
+
+    # Intermediary file (produced as output, used as input) 08
+    syn_pmid_count = os.path.join(data_folder,'syn_pmid_count.txt')
+
+    # Output 08
+    pmid_syn_count_out = os.path.join(data_folder,'pmid_synonym_counts_2012-2022.json')   # PMID Syn|Count...Syn|Cnt
+    synfound_pmid2cat = os.path.join(data_folder,'synfound_pmid2category_2012-2022.txt')  # PMID--->CategoryNumber
+    logfile = os.path.join(log_dir,'synonymcount_log_2012-2022.txt')                   # #hits:Synonym
 
 
-# Input path 13
-id2syns_in = os.path.join(input_dir,'id2syns.json' )                # The case-varied entity dict
-caseolap_scores_in = os.path.join(result_dir,'caseolap.csv')        # The CaseOLAP scores
-popular_scores_in = os.path.join(result_dir,'popularity_score.csv')
-distinct_scores_in = os.path.join(result_dir,'distinctiveness_score.csv')
+    # Input 09
+    id2syns = os.path.join(input_dir,'id2syns.json')
 
-pmid_syn_count_in = os.path.join(data_dir,'pmid_synonym_counts_2012-2022.json')  # Counts of each synonym
-remove_syns_in = os.path.join(data_dir,'remove_these_synonyms.txt')    # Syns that were not used
-cat2pmids_in = os.path.join(data_dir,'metadata_category2pmids_2012-2022.json')   # Category->[PMID,...,PMID]
+    # Output 09
+    eng_path = os.path.join(data_folder,'suspect_synonyms_english_words.txt')  # Ambiguous syns: English word
+    short_path = os.path.join(data_folder,'suspect_synonyms_too_short.txt')  # Ambiguous syns: Short words
+    rem_path = os.path.join(data_folder,'remove_these_synonyms.txt')         # Synonyms to remove
 
-# Output paths 13
-ranked_syns_out = os.path.join(result_dir,'ranked_synonyms/ranked_synonyms.txt') # Syns ranked by counts
-ranked_ent_caseolap_out = os.path.join(result_dir,'Ranked Entities/ranked_caseolap_score/ranked_entities.txt')  # Ents ranked by score
-ranked_ent_popular_out = os.path.join(result_dir,'Ranked Entities/ranked_popularity_score/ranked_entities.txt')  # Ents ranked by score
-ranked_ent_distinct_out = os.path.join(result_dir,'Ranked Entities/ranked_distinctiveness_score/ranked_entities.txt')  # Ents ranked by score
+
+    # Other parameters 09
+    index_name = 'pubmed_lift' # Index name
+    key = 'abstract'        # Choose if searching the abstracts and titles
+    key = 'full_text'      # Choose if searchines the abstracts, titles, and full text
+    key = 'full_text_no_methods' # Same as above, excluding abstracts
 
 
 
+    # Input 10
+    remove_syns_infile = os.path.join(data_folder,'remove_these_synonyms.txt')
+    all_id2syns_path = os.path.join(input_dir,'id2syns.json')
+    core_id2syns_path = os.path.join(input_dir,'core_id2syns.json')
+    pmid_syn_count_in = os.path.join(data_folder,'pmid_synonym_counts_2012-2022.json')
+
+    # Output 10
+    all_entitycount_outfile = os.path.join(data_folder,'all_entitycount_2012-2022.txt')
+    core_entitycount_outfile = os.path.join(data_folder,'core_entitycount_2012-2022.txt')
+
+
+
+    # Input file paths 11
+    all_entitycount_path = os.path.join(data_folder,'all_entitycount_2012-2022.txt')              # PMID Entity|Count ...
+    core_entitycount_path = os.path.join(data_folder,'core_entitycount_2012-2022.txt')              # PMID Entity|Count ...
+    pmid2category_path = os.path.join(data_folder,'textcube_pmid2category.json')# PMIDs of interest to category
+    category_names_file = os.path.join(config_dir,'textcube_config.json')  # Category names
+
+
+    # Output file paths 11
+    all_outfile_pmid2entity2count = os.path.join(data_folder,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
+    core_outfile_pmid2entity2count = os.path.join(data_folder,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
+    cat2pmids_path = os.path.join(data_folder,'metadata_category2pmids_2012-2022.json')   # {CatName:[PMID,...], ...}
+    all_logfile_path = os.path.join(log_dir,'all_metadata_update_log_2012-2022.txt')         # Similar to pmid2pcount
+    core_logfile_path = os.path.join(log_dir,'core_metadata_update_log_2012-2022.txt')         # Similar to pmid2pcount
+
+
+    # Input data directories 12
+    cat2pmids_path = os.path.join(data_folder,'metadata_category2pmids_2012-2022.json') # {CategoryName:[PMID,...],...}
+    all_pmid2entity2count_path = os.path.join(data_folder,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
+    core_pmid2entity2count_path = os.path.join(data_folder,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
+    category_names_path = os.path.join(config_dir,'textcube_config.json')    # ['CategoryName1',...]
+    # config_dir
+    # Output data path 12
+    all_logFilePath = os.path.join(log_dir,'all_caseolap_score_log.txt') # Logs #PMIDs for each category
+    core_logFilePath = os.path.join(log_dir,'core_caseolap_score_log.txt') # Logs #PMIDs for each category
+    all_caseolap_name = 'all_caseolap'  # Name of dataframe/spreadsheet for the caseolap scores
+    core_caseolap_name = 'core_caseolap'
+
+
+    # Input path 13
+    id2syns_in = os.path.join(input_dir,'id2syns.json' )                # The case-varied entity dict
+    caseolap_scores_in = os.path.join(analysis_output_folder,'caseolap.csv')        # The CaseOLAP scores
+    popular_scores_in = os.path.join(analysis_output_folder,'popularity_score.csv')
+    distinct_scores_in = os.path.join(analysis_output_folder,'distinctiveness_score.csv')
+
+    pmid_syn_count_in = os.path.join(data_folder,'pmid_synonym_counts_2012-2022.json')  # Counts of each synonym
+    remove_syns_in = os.path.join(data_folder,'remove_these_synonyms.txt')    # Syns that were not used
+    cat2pmids_in = os.path.join(data_folder,'metadata_category2pmids_2012-2022.json')   # Category->[PMID,...,PMID]
+
+    # Output paths 13
+    ranked_syns_out = os.path.join(analysis_output_folder,'ranked_synonyms/ranked_synonyms.txt') # Syns ranked by counts
+    ranked_ent_caseolap_out = os.path.join(analysis_output_folder,'Ranked Entities/ranked_caseolap_score/ranked_entities.txt')  # Ents ranked by score
+    ranked_ent_popular_out = os.path.join(analysis_output_folder,'Ranked Entities/ranked_popularity_score/ranked_entities.txt')  # Ents ranked by score
+    ranked_ent_distinct_out = os.path.join(analysis_output_folder,'Ranked Entities/ranked_distinctiveness_score/ranked_entities.txt')  # Ents ranked by score
+
+    # make directories
+    for dir in [analysis_output_folder, log_dir,input_dir,baseline_dir,update_files_dir]:
+        isExist = os.path.exists(dir)
+        if not isExist:
+            # Create a new directory because it does not exist
+            os.makedirs(dir)
+    print("01_run_download")
+    text_mining_01_run_download(data_folder, logFilePath, download_config_file_path, ftp_config_file_path,
+                               baseline_dir,update_files_dir)
+
+    print("02_run_parsing")
+    text_mining_02_run_parsing(baseline_dir, update_files_dir,
+                              parsing_config_file, pubmed_path, filestat_path,
+                              logfile_path)
+
+    print("03_run_mesh2pmid")
+    text_mining_03_run_mesh2pmid(pubmed_path,
+                                mesh2pmid_outputfile, mesh2pmid_statfile, logFilePath)
+    print("04_run_index_init")
+    text_mining_04_run_index_init(index_name, type_name, index_init_config_file,
+                                 number_shards=1, number_replicas=0, case_sensitive=True)
+    print("05_run_index_populate")
+    text_mining_05_run_index_populate(pubmed_path, index_populate_config_file,
+                                  logfile_path, index_name, type_name)
+    print("06_run_textcube")
+    text_mining_06_run_textcube(textcube_category2pmid, data_folder, meshtree, mesh2pmid, root_cat,
+                               textcube_config, textcube_pmid2category,
+                               textcube_stat, MeSHterms_percat,
+                               logfile_path)
+    print("07_run_vary_synonyms_cases")
+    text_mining_07_run_vary_synonyms_cases(entity_dict_path, species,
+                                          case_varied_entites_outpath,
+                                          case_varied_entity_dict_path)
+    print("08_run_count_synonyms")
+    text_mining_08_run_count_synonyms(entity_dict_path, textcube_pmid2category,
+                                  start_year, end_year, syn_pmid_count, pmid_syn_count_out,
+                                  synfound_pmid2cat, logfile, index_name, key)
+    print("09_run_screen_synonyms")
+    text_mining_09_run_screen_synonyms(id2syns, eng_path, short_path, rem_path)
+    print("10_run_make_entity_counts")
+    text_mining_10_run_make_entity_counts(remove_syns_infile, all_id2syns_path, core_id2syns_path, pmid_syn_count_in,
+                                         all_entitycount_outfile, core_entitycount_outfile)
+    print("11_run_metadata_update")
+    text_mining_11_run_metadata_update(all_entitycount_path, core_entitycount_path, pmid2category_path,
+                                      category_names_file, all_outfile_pmid2entity2count,
+                                      core_outfile_pmid2entity2count, cat2pmids_path, all_logfile_path,
+                                      core_logfile_path)
+    print("12_run_caseolap_score")
+    text_mining_12_run_caseolap_score(cat2pmids_path, all_pmid2entity2count_path, core_pmid2entity2count_path,
+                                     category_names_path, analysis_output_folder, all_logFilePath, core_logFilePath,
+                                     all_caseolap_name, core_caseolap_name)
+    print("13_run_inspect_entity_scores")
+
+    text_mining_13_run_inspect_entity_scores(id2syns_in, caseolap_scores_in, popular_scores_in, distinct_scores_in,
+                                            pmid_syn_count_in, remove_syns_in, cat2pmids_in, ranked_syns_out,
+                                            ranked_ent_caseolap_out, ranked_ent_popular_out, ranked_ent_distinct_out)
+    print("Finished with Text Mining Module")
 # pubmed_path!!pubmed_path = os.path.join(data_dir,"pubmed.json")
 # pubmed_path!!pubmed_path = os.path.join(data_dir,'pubmed.json') #'data/pubmed.json' # Parsed publications
 # baseline_dir!!baseline_dir = os.path.join(data_dir,'ftp.ncbi.nlm.nih.gov/pubmed/baseline' ) #
@@ -198,7 +264,8 @@ ranked_ent_distinct_out = os.path.join(result_dir,'Ranked Entities/ranked_distin
 # mesh2pmid_outputfile!!mesh2pmid = os.path.join(data_dir,'mesh2pmid.json') # MeSH to PMID mapping
 
 
-def text_mining_01_run_download(root_dir, data_dir, logFilePath, download_config_file_path, ftp_config_file_path,
+
+def text_mining_01_run_download(data_dir, logFilePath, download_config_file_path, ftp_config_file_path,
                                baseline_dir,update_files_dir):
     '''
     The purpose of this file is to download the zipped files containing
@@ -231,7 +298,7 @@ def text_mining_01_run_download(root_dir, data_dir, logFilePath, download_config
     logfile.close()
 
 
-def text_mining_02_run_parsing(root_dir, data_dir, baseline_dir, update_files_dir,
+def text_mining_02_run_parsing(baseline_dir, update_files_dir,
                               parsing_config_file, pubmed_path, filestat_path,
                               logfile_path):
     '''
@@ -263,7 +330,7 @@ def text_mining_02_run_parsing(root_dir, data_dir, baseline_dir, update_files_di
     print('Total Time: ', str((t2 - t1) / 360), 'hours')
 
 
-def text_mining_03_run_mesh2pmid(root_dir, data_dir, pubmed_path,
+def text_mining_03_run_mesh2pmid(pubmed_path,
                                 mesh2pmid_outputfile, mesh2pmid_statfile, logFilePath):
     '''
     The purpose of this file is to map MeSH Terms (metadata) to PMIDs
@@ -284,7 +351,7 @@ def text_mining_03_run_mesh2pmid(root_dir, data_dir, pubmed_path,
     logfile.close()
 
 
-def text_mining_04_run_index_init(root_dir, index_name, type_name, index_init_config_file,
+def text_mining_04_run_index_init(index_name, type_name, index_init_config_file,
                                  number_shards=1, number_replicas=0, case_sensitive=True):
     '''
     The purpose of this file is to initialize the ElasticSearch index
@@ -317,15 +384,15 @@ def text_mining_04_run_index_init(root_dir, index_name, type_name, index_init_co
     print('Created index:', index_name, '\nResponse:', res)
 
 
-def text_mining_05_run_index_populate(root_dir,data_dir,pubmed_path,index_populate_config_file,
-                                     index_populate_config,logfile_path,index_name, type_name):
+def text_mining_05_run_index_populate(pubmed_path,index_populate_config_file,
+                                     logfile_path,index_name, type_name):
     '''
     The purpose of this file is to populate the ElasticSearch index.
     Make sure ElasticSearch is running.
     '''
     # Open the log file
     logfile = open(logfile_path, 'w')
-
+    index_populate_config = json.load(open(index_populate_config_file))
     # Populate the index
     populate_index(pubmed_path, logfile, index_name, type_name, index_populate_config)
 
@@ -333,7 +400,7 @@ def text_mining_05_run_index_populate(root_dir,data_dir,pubmed_path,index_popula
     logfile.close()
 
 
-def text_mining_06_run_textcube(root_dir, data_dir, meshtree, mesh2pmid, root_cat,
+def text_mining_06_run_textcube(textcube_category2pmid, meshtree, mesh2pmid, root_cat,
                                textcube_config, textcube_pmid2category,
                                textcube_stat, MeSHterms_percat,
                                logfile_path):
@@ -675,9 +742,5 @@ def text_mining_13_run_inspect_entity_scores(id2syns_in, caseolap_scores_in, pop
 
     # Export & display the ranked entities, their synonyms, and synonym counts
     IES.rank_each_category_score(ranked_ent_distinct_out, score_component='Distinctiveness Score')
-
-
-
-
 
 

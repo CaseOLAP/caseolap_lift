@@ -9,6 +9,7 @@ import json
 from preprocessing.entity_set_expansion import prepare_subcellular_compartment_proteins
 from text_mining import *
 from analysis.run_analyse_results import analyze_results
+from text_mining.run_text_mining import run_text_mining
 
 from utils.FileConverter import *
 
@@ -346,14 +347,12 @@ def text_mining(args):
     save_parameters(analysis_output_folder, parameters,debug=True)
 
     # Run the text mining modules
-    ent_parameters = {'go-term': parameters['cellular_components'],
-                      }
-    prepare_subcellular_compartment_proteins(ent_parameters,
-                                             mapping_folder=mapping_folder,
-                                             output_folder=analysis_output_folder, debug=False)
-
-    01_run_download
-
+    run_text_mining(output_folder, data_folder, mapping_folder, analysis_output_folder,
+                    date_range=parameters['date_range'],
+                    include_full_text=parameters['include_full_text'],
+                    include_label_imputation=parameters['include_label_imputation'],
+                    check_synonyms=parameters['check_synonyms'],
+                    rerun_scoring=parameters['rerun_scoring'])
 
     print("Done with text mining module.")
     return True
