@@ -21,7 +21,7 @@ class MakeEntityCounts(object):
 
         ### Map entity ID -> synonyms
         id2syns = json.load(open(id2syns_path))
-        
+        print(id2syns_path)        
         ### Map synonyms -> entity IDs
         self.syn2id = dict()
         for ID,syns in id2syns.items():
@@ -33,6 +33,49 @@ class MakeEntityCounts(object):
         self.pcs = json.load(open(pmid_syn_count_in))
 
         
+#    def entitycount(self, entitycount_outfile):
+#        '''
+#        FUNCTION:
+#        Writes filtered entitycount.txt:
+#        PMID EntityID1|Count ... EntityIDn|Count
+#        
+#        PARAMS:
+#        - entitycount_outfile: entitycount output
+#        '''
+#        missing_count=0
+#        total_count=0
+#        with open(entitycount_outfile,'w') as fout:
+#            # For each PMID
+#            for pmid in self.pcs:
+#                tempd = dict()
+#                
+#                # For each good synonym in the publication
+#                for synonym in self.pcs[pmid]:
+#                    if synonym not in self.bad_syns:
+#                        
+#                        # Get the current synonym count in current publication
+#                        syn_count = self.pcs[pmid][synonym]
+#
+#                        #print(synonym,self.syn2id[synonym])
+#                        if synonym in self.syn2id:
+#                        # Map the good synonym to its entity ID(s)
+#                            for entity_id in self.syn2id[synonym]:
+#                                tempd[entity_id] = tempd.get(entity_id,0) + syn_count 
+#                        else:
+#                            #print("Missing syn2id for %s!!"%(synonym))
+#                            missing_count+=1
+#                        total_count+=1
+#                # Save mappings: PMID entity_ID|count ...
+#                if len(tempd) > 0:
+#                    fout.write(pmid+' ')
+#                    for entity_id in tempd:
+#                        ent_count = tempd[entity_id]
+#                        fout.write(entity_id+'|'+str(ent_count)+' ')
+#                    fout.write('\n')
+#        if missing_count > 0:
+#            print("Missing %d out of %d synonyms from syn2id"%(missing_count,total_count))
+#            print(len(self.syn2id))
+#            #print(self.syn2id)
         
     def entitycount(self, entitycount_outfile):
         '''
@@ -50,7 +93,7 @@ class MakeEntityCounts(object):
                 
                 # For each good synonym in the publication
                 for synonym in self.pcs[pmid]:
-                    if synonym not in self.bad_syns:
+                    if synonym not in self.bad_syns and synonym in self.syn2id:
                         
                         # Get the current synonym count in current publication
                         syn_count = self.pcs[pmid][synonym]
@@ -58,7 +101,6 @@ class MakeEntityCounts(object):
                         # Map the good synonym to its entity ID(s)
                         for entity_id in self.syn2id[synonym]:
                             tempd[entity_id] = tempd.get(entity_id,0) + syn_count 
-                
                 # Save mappings: PMID entity_ID|count ...
                 if len(tempd) > 0:
                     fout.write(pmid+' ')
@@ -66,5 +108,3 @@ class MakeEntityCounts(object):
                         ent_count = tempd[entity_id]
                         fout.write(entity_id+'|'+str(ent_count)+' ')
                     fout.write('\n')
-                
-                

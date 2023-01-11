@@ -136,6 +136,12 @@ class VarySynonymsCases(object):
         
         # Recursively add both case-variations of the ith word to 
         # their own left or right branch on the current "tree"
+        if(len(left_node)==0):
+            print("root1: ",root1)
+            print("left_node: ",left_node)
+            print("right_node: ",right_node)
+            print("syn_as_list: ",str(syn_as_list))
+            
         if left_node[-1] == '/':
             left_node += syn_as_list[current_word_index]
         else:
@@ -173,7 +179,8 @@ class VarySynonymsCases(object):
         '''        
         # Split synonym into a list
         syn_as_list = syn.replace('-', ' - ').replace('/','/ ').split(' ')
-        
+        if syn_as_list[0] == '':
+            syn_as_list = syn_as_list[1:]
         # Split synonym into a list, words are opposite cased 
         syn_as_list_opp_case = list()
         
@@ -195,7 +202,8 @@ class VarySynonymsCases(object):
             else:
                 # Add original word
                 syn_as_list_opp_case.append(word)
-                
+        #if syn_as_list[0] == '':
+        #    print("This is the original synonym",syn)
         self.get_all_case_varied_word_list(syn_as_list[0], 
                                            syn_as_list, 
                                            syn_as_list_opp_case, 
@@ -321,8 +329,9 @@ def multiprocess_a_dict_of_keys_and_lists_values(thedict, the_function):
     for i,(key, values_list) in enumerate(thedict.items()):
 
         # Add synonym to a batch
+        the_values_list = [val for val in values_list if len(val) > 0]
         b_id = i%procs
-        batches[b_id].append({key:values_list})
+        batches[b_id].append({key:the_values_list})
 
     # Create a list of jobs
     print("Running jobs...")
@@ -339,14 +348,17 @@ def multiprocess_a_dict_of_keys_and_lists_values(thedict, the_function):
     
     
     
-def make_id2syns_dict():
+def make_id2syns_dict(case_sensitive_entities_file='data/casesensitive_entities.txt',
+        id2syns_outfile='input/id2syns.json',
+        core_proteins_file='../output/core_proteins.txt',
+        core_id2syns_outfile='input/core_id2syns.json'):
     '''
     FUNCTION:
     - Make a dictionary of entity IDs (keys) to synonyms (values)
     '''
     id2syns = dict()
 
-    with open('data/casesensitive_entities.txt') as fin:
+    with open(case_sensitive_entities_file) as fin:
         for line in fin:
             line = line.strip('\n').replace('_',' ').split('|')
 
@@ -357,21 +369,23 @@ def make_id2syns_dict():
             # ID -> Synonyms
             id2syns[ID] = names
 
-    json.dump(id2syns, open('input/id2syns.json','w'))
+    json.dump(id2syns, open(id2syns_outfile,'w'))
     
     
     ### Core proteins
     core_proteins = set()
-    with open('../output/core_proteins.txt') as fin:
+    with open(core_proteins_file) as fin:
         for line in fin:
             core_proteins.add(line.strip())
-
+    print(len(core_proteins))
     ### Core protein ID -> synonyms
     core_id2syns = dict()
     for core_id in core_proteins:
-        synonyms = id2syns[core_id]
-        core_id2syns[core_id] = synonyms
-
-    json.dump(core_id2syns, open('input/core_id2syns.json','w'))
+        if core_id in id2syns:
+            synonyms = id2syns[core_id]
+            core_id2syns[core_id] = synonyms
+        else:
+            print("Missing synonyms for %s!!"%(core_id))
+    json.dump(core_id2syns, open(core_id2syns_outfile,'w'))
 
 

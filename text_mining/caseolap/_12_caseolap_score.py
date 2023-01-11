@@ -1,4 +1,4 @@
-import pandas as pd, numpy as np, matplotlib.pyplot as plt, seaborn as sns, json
+import pandas as pd, numpy as np, matplotlib.pyplot as plt, seaborn as sns, json, os
 
 # Note: "Term Frequency" here doesn't mean relative frequency of a term compared
 # to all other terms in the document. It just means the absolute count. 
@@ -56,7 +56,8 @@ class Caseolap(object):
         # Process data into a dataframe
         df = pd.DataFrame(flatdata)
         df = df.set_index('entity')
-        df.to_csv(self.result_dir + file_name +'.csv')
+        out_file_name = os.path.join(self.result_dir,(file_name+'.csv'))
+        df.to_csv(out_file_name)
         return df  
         
         
@@ -70,7 +71,8 @@ class Caseolap(object):
         - data: Variable to export as a JSON
         - file_name: File name
         '''
-        with open(self.result_dir + file_name +'.json', 'w') as fout:
+        out_file_name = os.path.join(self.result_dir,(file_name+".json"))
+        with open(out_file_name, 'w') as fout:
             json.dump(data, fout)
             
             
@@ -126,16 +128,25 @@ class Caseolap(object):
         '''
         # Iterate through each category name and its publication PMIDs
         for category, category_pmids in self.category2pmids.items():
-            
             # For each PMID, map PMID->Entity->Entity_Count
             pmid2entity2count = dict()
+            count = 0
             for pmid in category_pmids:
-                entity2count = self.pmid2entity2count[pmid]
-                pmid2entity2count[pmid] = entity2count
-              
+                print(type(self.pmid2entity2count),type(list(self.pmid2entity2count.keys())[0]),type(list(self.pmid2entity2count.values())[0]))
+                try:
+                    entity2count = self.pmid2entity2count[pmid]
+                    pmid2entity2count[pmid] = entity2count
+                except:
+                    print(pmid,type(pmid))
+                    print(type(self.pmid2entity2count),type(self.pmid2entity2count.keys()[0]),type(self.pmid2entity2count.values()[0]))
+                    #print(type(entity2count),type(entity2count.keys()[0]),type(entity2count.values()[0]))
+                    count+=1
+                    #print(pmid)
+                    #print(category_pmids)
+                    #print(self.pmid2entity2count)
+            print("%d out of %d pmids missing for %s"%(count,len(category_pmids),category))
             # Save Category->PMID->Entity->Entity_Count  
             self.category2pmid2entity2count[category] = pmid2entity2count
-            
                         
                 
     def get_all_entities(self, dump = False,verbose = False):

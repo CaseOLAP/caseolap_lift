@@ -96,16 +96,19 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
 
 
     # Input 07
-    entity_dict_path = os.path.join(input_dir,'id2syns_not_case_varied.json') # entity dict
+    #TODO move this one folder above, not in TFD
+    entity_dict_path_no_cs = os.path.join(mapping_folder,'Transcription_Factor_Dependence/id2synonyms_not_case_varied.json') # entity dict
     species = ['human', 'pig', 'mouse', 'rat']  # Species studied. Used for permuting syns.
 
     # Output 07
     case_varied_entites_outpath = os.path.join(data_folder,'casesensitive_entities.txt') # Case sensitive entity dict
     case_varied_entity_dict_path = os.path.join(input_dir,'id2syns.json') # entity dict
-
+    core_id2syns=os.path.join(input_dir,'core_id2syns.json')
+    core_proteins_file=os.path.join(root_dir,'output/core_proteins.txt')
 
     # Input 08
-    entity_dict_path = 'input/id2syns.json'
+    entity_dict_path = case_varied_entity_dict_path
+    #entity_dict_path = 'input/id2syns.json'
     textcube_pmid2category = os.path.join(data_folder,'textcube_pmid2category.json')
     if date_range != None:
         start_year = int(date_range[0].split("-")[0])
@@ -117,7 +120,7 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
     # start_year = 2012    # <-- Change as you see fit for your publications of interest
     # end_year = 2022      # <-- Same as above comment
 
-    # Intermediary file (produced as output, used as input) 08
+    # Intermediary file (produced as    c
     syn_pmid_count = os.path.join(data_folder,'syn_pmid_count.txt')
 
     # Output 08
@@ -205,42 +208,45 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
         if not isExist:
             # Create a new directory because it does not exist
             os.makedirs(dir)
-    print("01_run_download")
-    text_mining_01_run_download(data_folder, logFilePath, download_config_file_path, ftp_config_file_path,
-                               baseline_dir,update_files_dir)
+#    print("01_run_download")
+#    text_mining_01_run_download(data_folder, logFilePath, download_config_file_path, ftp_config_file_path,
+#                               baseline_dir,update_files_dir)
+#
+#    print("02_run_parsing")
+#    text_mining_02_run_parsing(baseline_dir, update_files_dir,
+#                              parsing_config_file, pubmed_path, filestat_path,
+#                              logfile_path)
+#
+#    print("03_run_mesh2pmid")
+#    text_mining_03_run_mesh2pmid(pubmed_path,
+#                                mesh2pmid_outputfile, mesh2pmid_statfile, logFilePath)
+#    print("04_run_index_init")
+#    text_mining_04_run_index_init(index_name, type_name, index_init_config_file,
+#                                 number_shards=1, number_replicas=0, case_sensitive=True)
+#    print("05_run_index_populate")
+#    text_mining_05_run_index_populate(pubmed_path, index_populate_config_file,
+#                                  logfile_path, index_name, type_name)
+#    print("06_run_textcube")
+#    text_mining_06_run_textcube(textcube_category2pmid, meshtree, mesh2pmid, root_cat,
+#                               textcube_config, textcube_pmid2category,
+#                               textcube_stat, MeSHterms_percat,
+#                               logfile_path)
+#    print("07_run_vary_synonyms_cases")
+#    text_mining_07_run_vary_synonyms_cases(entity_dict_path_no_cs, species,
+#                                          case_varied_entites_outpath,
+#                                          case_varied_entity_dict_path,
+#                                          core_proteins_file,
+#                                          core_id2syns)
+#    print("08_run_count_synonyms")
+#    text_mining_08_run_count_synonyms(entity_dict_path, textcube_pmid2category,
+#                                  start_year, end_year, syn_pmid_count, pmid_syn_count_out,
+#                                  synfound_pmid2cat, logfile, index_name, key)
+#    print("09_run_screen_synonyms")
+#    text_mining_09_run_screen_synonyms(data_folder, id2syns, eng_path, short_path, rem_path)
 
-    print("02_run_parsing")
-    text_mining_02_run_parsing(baseline_dir, update_files_dir,
-                              parsing_config_file, pubmed_path, filestat_path,
-                              logfile_path)
-
-    print("03_run_mesh2pmid")
-    text_mining_03_run_mesh2pmid(pubmed_path,
-                                mesh2pmid_outputfile, mesh2pmid_statfile, logFilePath)
-    print("04_run_index_init")
-    text_mining_04_run_index_init(index_name, type_name, index_init_config_file,
-                                 number_shards=1, number_replicas=0, case_sensitive=True)
-    print("05_run_index_populate")
-    text_mining_05_run_index_populate(pubmed_path, index_populate_config_file,
-                                  logfile_path, index_name, type_name)
-    print("06_run_textcube")
-    text_mining_06_run_textcube(textcube_category2pmid, data_folder, meshtree, mesh2pmid, root_cat,
-                               textcube_config, textcube_pmid2category,
-                               textcube_stat, MeSHterms_percat,
-                               logfile_path)
-    print("07_run_vary_synonyms_cases")
-    text_mining_07_run_vary_synonyms_cases(entity_dict_path, species,
-                                          case_varied_entites_outpath,
-                                          case_varied_entity_dict_path)
-    print("08_run_count_synonyms")
-    text_mining_08_run_count_synonyms(entity_dict_path, textcube_pmid2category,
-                                  start_year, end_year, syn_pmid_count, pmid_syn_count_out,
-                                  synfound_pmid2cat, logfile, index_name, key)
-    print("09_run_screen_synonyms")
-    text_mining_09_run_screen_synonyms(id2syns, eng_path, short_path, rem_path)
-    print("10_run_make_entity_counts")
-    text_mining_10_run_make_entity_counts(remove_syns_infile, all_id2syns_path, core_id2syns_path, pmid_syn_count_in,
-                                         all_entitycount_outfile, core_entitycount_outfile)
+#    print("10_run_make_entity_counts")
+#    text_mining_10_run_make_entity_counts(remove_syns_infile, all_id2syns_path, core_id2syns_path, pmid_syn_count_in,
+#                                        all_entitycount_outfile, core_entitycount_outfile)
     print("11_run_metadata_update")
     text_mining_11_run_metadata_update(all_entitycount_path, core_entitycount_path, pmid2category_path,
                                       category_names_file, all_outfile_pmid2entity2count,
@@ -435,14 +441,15 @@ def text_mining_06_run_textcube(textcube_category2pmid, meshtree, mesh2pmid, roo
 
 def text_mining_07_run_vary_synonyms_cases(entity_dict_path, species,
                                           case_varied_entites_outpath,
-                                          case_varied_entity_dict_path):
+                                          case_varied_entity_dict_path,
+                                          core_proteins,
+                                          core_id2syns_outfile):
     '''
     The purpose of this file is to create case-sensitive variations
     of the synonyms. The synonyms will then be queried.
     '''
     # Instantiates the class, loads entity dictionary mapping ID to synonyms
     VSC = VarySynonymsCases(entity_dict_path, case_varied_entites_outpath)
-
     # Adds some more synonyms
     VSC.add_species_syns(species)
 
@@ -450,7 +457,10 @@ def text_mining_07_run_vary_synonyms_cases(entity_dict_path, species,
     VSC.gets_final_syns()
 
     # Make a dictionary of the ID to synonym data
-    make_id2syns_dict()
+    make_id2syns_dict(case_sensitive_entities_file=case_varied_entites_outpath,
+                id2syns_outfile=case_varied_entity_dict_path,
+                core_proteins_file=core_proteins,
+                core_id2syns_outfile=core_id2syns_outfile)
 
 
 def text_mining_08_run_count_synonyms(entity_dict_path, textcube_pmid2category,
@@ -458,7 +468,6 @@ def text_mining_08_run_count_synonyms(entity_dict_path, textcube_pmid2category,
                                      synfound_pmid2cat, logfile, index_name, key):
     # Instantiate the object
     CS = CountSynonyms(entity_dict_path, textcube_pmid2category)
-
     # Search for the synonyms in the indexed text
     CS.synonym_search(key, logfile, syn_pmid_count, index_name, start_year, end_year)
 
@@ -467,7 +476,7 @@ def text_mining_08_run_count_synonyms(entity_dict_path, textcube_pmid2category,
                              pmid_syn_count_out, synfound_pmid2cat)
 
 
-def text_mining_09_run_screen_synonyms(id2syns, eng_path, short_path, rem_path):
+def text_mining_09_run_screen_synonyms(data_dir, id2syns, eng_path, short_path, rem_path):
     '''
     The purpose of this file is to screen and modify entity synonyms.
     - It screens the entity synonyms (checks for potentially ambiguous synonyms).
@@ -481,10 +490,10 @@ def text_mining_09_run_screen_synonyms(id2syns, eng_path, short_path, rem_path):
     SE = ScreenSynonyms(id2syns)
 
     # Identifies synonyms to possible remove
-    SE.find_suspect_synonyms()
+    SE.find_suspect_synonyms(data_dir=data_dir)
 
     # Merge the temp files of suspect synonyms
-    SE.merge_suspect_syns()
+    SE.merge_suspect_syns(data_dir=data_dir)
 
     # Save the synonyms you might want to remove. Inspect and modify this file
     SE.export_suspect_synonyms(eng_path, short_path, rem_path)
@@ -500,6 +509,7 @@ def text_mining_10_run_make_entity_counts(remove_syns_infile, all_id2syns_path, 
     '''
     #### Expanded set proteins
     # Instantiate and initialize class
+    print("MEC for all entities: ",all_id2syns_path)
     MEC = MakeEntityCounts(all_id2syns_path, remove_syns_infile, pmid_syn_count_in)
 
     # Makes "pmid->entity->count" from "pmid->syn->count" & "entity->syn" mappings
@@ -507,6 +517,7 @@ def text_mining_10_run_make_entity_counts(remove_syns_infile, all_id2syns_path, 
 
     #### Core Proteins
     # Instantiate and initialize class
+    print("MEC for core entities: ",core_id2syns_path)
     MEC = MakeEntityCounts(core_id2syns_path, remove_syns_infile, pmid_syn_count_in)
 
     # Makes "pmid->entity->count" from "pmid->syn->count" & "entity->syn" mappings

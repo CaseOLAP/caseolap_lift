@@ -87,7 +87,7 @@ class ScreenSynonyms(object):
     
     
     
-    def check_suspect_synonyms(self, b_id, syns):
+    def check_suspect_synonyms(self, b_id, syns, data_dir):
         '''
         FUNCTION: 
         This checks a synonym to see if it's too ambiguous. 
@@ -103,13 +103,13 @@ class ScreenSynonyms(object):
             english = self.check_if_eng_word(syn)
             ambiguous = short or english
             if ambiguous:
-                temp_file = 'data/suspect_synonyms_'+str(b_id)+'.txt'
+                temp_file = os.path.join(data_dir,'suspect_synonyms_'+str(b_id)+'.txt')
                 open(temp_file,'a').write(syn+'\n')
 
          
         
 
-    def find_suspect_synonyms(self):    
+    def find_suspect_synonyms(self, data_dir='data'):    
         '''
         FUNCTION: 
         Find synonyms which are potential false positives.
@@ -121,8 +121,9 @@ class ScreenSynonyms(object):
         
         ### Clear temp files if they are left over from last time
         for b_id in range(procs):
-            path = 'data/suspect_synonyms_'+str(b_id)+'.txt'
-            open(path,'w')
+            path = os.path.join(data_dir,'suspect_synonyms_'+str(b_id)+'.txt')
+            if os.path.exists(path):
+                open(path,'w')
         
         ### FIND THE POTENTIALLY BAD SYNONYMS 
         batch = [[] for i in range(procs)]    
@@ -143,14 +144,14 @@ class ScreenSynonyms(object):
                 # Add each job checking synonyms to a list
                 for b_id, syns in enumerate(batch):
                     jobs.append(Process(target = self.check_suspect_synonyms,\
-                                        args = [b_id, syns]))
+                                        args = [b_id, syns, data_dir]))
                 # Run the jobs
                 for j in jobs: j.start()
                 for j in jobs: j.join()
         
         
         
-    def merge_suspect_syns(self):
+    def merge_suspect_syns(self, data_dir='data'):
         '''
         FUNCTION:
         Merges the temp files of the potentially bad synonyms.
@@ -160,7 +161,7 @@ class ScreenSynonyms(object):
         # For each temp file
         for b_id in range(procs):
             # Open temp file path
-            path = 'data/suspect_synonyms_'+str(b_id)+'.txt'
+            path = os.path.join(data_dir,'suspect_synonyms_'+str(b_id)+'.txt')
             with open(path ,'r') as fin:
                 
                 # Read in each synonym
