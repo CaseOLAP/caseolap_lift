@@ -172,11 +172,11 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
     all_logfile_path = os.path.join(log_dir,'all_metadata_update_log_2012-2022.txt')         # Similar to pmid2pcount
     core_logfile_path = os.path.join(log_dir,'core_metadata_update_log_2012-2022.txt')         # Similar to pmid2pcount
 
-
     # Input data directories 12
-    cat2pmids_path = os.path.join(data_folder,'metadata_category2pmids_2012-2022.json') # {CategoryName:[PMID,...],...}
-    all_pmid2entity2count_path = os.path.join(data_folder,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
-    core_pmid2entity2count_path = os.path.join(data_folder,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
+    all_cat2pmids_path =  os.path.join(data_folder,'all_metadata_category2pmids_2012-2022-2.json') # {CatName:[PMID,...], ...}
+    core_cat2pmids_path = os.path.join(data_folder,'core_metadata_category2pmids_2012-2022-2.json')  # {CatName:[PMID,...], ...}
+    all_pmid2entity2count_path = os.path.join(data_folder,'all_metadata_pmid2entity2count_2012-2022-2.json') # {PMID:{Entity:Count,...},...}
+    core_pmid2entity2count_path = os.path.join(data_folder,'core_metadata_pmid2entity2count_2012-2022-2.json') # {PMID:{Entity:Count,...},...}
     category_names_path = os.path.join(config_dir,'textcube_config.json')    # ['CategoryName1',...]
     # config_dir
     # Output data path 12
@@ -185,22 +185,34 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
     all_caseolap_name = 'all_caseolap'  # Name of dataframe/spreadsheet for the caseolap scores
     core_caseolap_name = 'core_caseolap'
 
-
     # Input path 13
-    id2syns_in = os.path.join(input_dir,'id2syns.json' )                # The case-varied entity dict
-    caseolap_scores_in = os.path.join(analysis_output_folder,'caseolap.csv')        # The CaseOLAP scores
-    popular_scores_in = os.path.join(analysis_output_folder,'popularity_score.csv')
-    distinct_scores_in = os.path.join(analysis_output_folder,'distinctiveness_score.csv')
-
+    id2syns_in = os.path.join(input_dir,'id2syns.json')                # The case-varied entity dict
     pmid_syn_count_in = os.path.join(data_folder,'pmid_synonym_counts_2012-2022.json')  # Counts of each synonym
     remove_syns_in = os.path.join(data_folder,'remove_these_synonyms.txt')    # Syns that were not used
-    cat2pmids_in = os.path.join(data_folder,'metadata_category2pmids_2012-2022.json')   # Category->[PMID,...,PMID]
+
+    all_caseolap_scores_in = os.path.join(analysis_output_folder,'all_proteins/all_caseolap.csv')  # The CaseOLAP scores
+    all_popular_scores_in =  os.path.join(analysis_output_folder,'all_proteins/all_popularity_score.csv')
+    all_distinct_scores_in =  os.path.join(analysis_output_folder,'all_proteins/all_distinctiveness_score.csv')
+    all_cat2pmids_in = os.path.join(data_folder,'all_metadata_category2pmids_2012-2022-2.json')  # {CatName:[PMID,...], ...}
+
+    core_caseolap_scores_in =  os.path.join(analysis_output_folder,'core_proteins/core_caseolap.csv') # The CaseOLAP scores
+    core_popular_scores_in =  os.path.join(analysis_output_folder,'core_proteins/core_popularity_score.csv')
+    core_distinct_scores_in =  os.path.join(analysis_output_folder,'core_proteins/core_distinctiveness_score.csv')
+    core_cat2pmids_in = os.path.join(data_folder,'core_metadata_category2pmids_2012-2022-2.json')  # {CatName:[PMID,...], ...}
 
     # Output paths 13
-    ranked_syns_out = os.path.join(analysis_output_folder,'ranked_synonyms/ranked_synonyms.txt') # Syns ranked by counts
-    ranked_ent_caseolap_out = os.path.join(analysis_output_folder,'Ranked Entities/ranked_caseolap_score/ranked_entities.txt')  # Ents ranked by score
-    ranked_ent_popular_out = os.path.join(analysis_output_folder,'Ranked Entities/ranked_popularity_score/ranked_entities.txt')  # Ents ranked by score
-    ranked_ent_distinct_out = os.path.join(analysis_output_folder,'Ranked Entities/ranked_distinctiveness_score/ranked_entities.txt')  # Ents ranked by score
+    all_ranked_syns_out = os.path.join(analysis_output_folder,'all_proteins/ranked_synonyms/ranked_synonyms.txt')  # Syns ranked by counts
+    all_direct = os.path.join(analysis_output_folder,'all_proteins/ranked_proteins/')
+    all_ranked_caseolap_out = all_direct + 'ranked_caseolap_score/ranked_proteins.txt'  # Proteins ranked by score
+    all_ranked_popular_out = all_direct + 'ranked_popularity_score/ranked_proteins.txt'
+    all_ranked_distinct_out = all_direct + 'ranked_distinctiveness_score/ranked_proteins.txt'
+
+    core_ranked_syns_out = os.path.join(analysis_output_folder,'core_proteins/ranked_synonyms/ranked_synonyms.txt') # Syns ranked by counts
+    core_direct = os.path.join(analysis_output_folder,'core_proteins/ranked_proteins/')
+    core_ranked_caseolap_out = core_direct + 'ranked_caseolap_score/ranked_proteins.txt'  # Proteins ranked by score
+    core_ranked_popular_out = core_direct + 'ranked_popularity_score/ranked_proteins.txt'
+    core_ranked_distinct_out = core_direct + 'ranked_distinctiveness_score/ranked_proteins.txt'
+
 
     # make directories
     for dir in [analysis_output_folder, log_dir,input_dir,baseline_dir,update_files_dir]:
@@ -253,14 +265,18 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
                                       core_outfile_pmid2entity2count, cat2pmids_path, all_logfile_path,
                                       core_logfile_path)
     print("12_run_caseolap_score")
-    text_mining_12_run_caseolap_score(cat2pmids_path, all_pmid2entity2count_path, core_pmid2entity2count_path,
-                                     category_names_path, analysis_output_folder, all_logFilePath, core_logFilePath,
-                                     all_caseolap_name, core_caseolap_name)
-    print("13_run_inspect_entity_scores")
+    text_mining_12_run_caseolap_score(all_cat2pmids_path, core_cat2pmids_path, all_pmid2entity2count_path,
+                                      core_pmid2entity2count_path, category_names_path, all_logFilePath,
+                                      core_logFilePath, all_caseolap_name, core_caseolap_name)
 
-    text_mining_13_run_inspect_entity_scores(id2syns_in, caseolap_scores_in, popular_scores_in, distinct_scores_in,
-                                            pmid_syn_count_in, remove_syns_in, cat2pmids_in, ranked_syns_out,
-                                            ranked_ent_caseolap_out, ranked_ent_popular_out, ranked_ent_distinct_out)
+    print("13_run_inspect_entity_scores")
+    text_mining_13_run_inspect_entity_scores(id2syns_in, pmid_syn_count_in, remove_syns_in, all_caseolap_scores_in,
+                                             all_popular_scores_in, all_distinct_scores_in, all_cat2pmids_in,
+                                             core_caseolap_scores_in, core_popular_scores_in, core_distinct_scores_in,
+                                             core_cat2pmids_in, all_ranked_syns_out, all_ranked_caseolap_out,
+                                             all_ranked_popular_out, all_ranked_distinct_out, core_ranked_syns_out,
+                                             core_ranked_caseolap_out, core_ranked_popular_out,
+                                             core_ranked_distinct_out)
     print("Finished with Text Mining Module")
 # pubmed_path!!pubmed_path = os.path.join(data_dir,"pubmed.json")
 # pubmed_path!!pubmed_path = os.path.join(data_dir,'pubmed.json') #'data/pubmed.json' # Parsed publications
@@ -587,8 +603,9 @@ def text_mining_12_run_caseolap_score(cat2pmids_path, all_pmid2entity2count_path
     '''
 
     #### All proteins ####
+    print('======All Proteins======')
     logfile = open(all_logFilePath, 'w')
-    category2pmids = json.load(open(cat2pmids_path, 'r'))
+    category2pmids = json.load(open(all_cat2pmids_path, 'r'))
     pmid2entity2count = json.load(open(all_pmid2entity2count_path, 'r'))
 
     ''' Initial Calculations'''
@@ -596,13 +613,13 @@ def text_mining_12_run_caseolap_score(cat2pmids_path, all_pmid2entity2count_path
     C = Caseolap(category2pmids, pmid2entity2count, result_dir, category_names_path, logfile)
 
     # Print info on categories and their number of publications
-    C.print_categories2pmid(dump=True, verbose=True)
+    C.print_categories2pmid(all_or_core='all', dump=True, verbose=True)
 
     # Map Category to its PMIDs to its Entities to the Entity's Counts
     C.map_category2pmid2entity2count()
 
     # Save all entities
-    C.get_all_entities(dump=True, verbose=True)
+    C.get_all_entities('all', dump=True, verbose=True)
 
     ''' Popularity Score (note: relies on some previous sections above)'''
     # Get the entity counts for each category
@@ -612,7 +629,7 @@ def text_mining_12_run_caseolap_score(cat2pmids_path, all_pmid2entity2count_path
     C.category2entity2tf_finder()
 
     # Calculate the popularity scores for all entities
-    C.calculate_all_popularity_scores(dump=True)
+    C.calculate_all_popularity_scores(all_or_core='all', dump=True)
 
     ''' Distinctiveness Score (note: relies on some previous sections above)'''
     # Map entities to the count of their PMIDs
@@ -628,32 +645,33 @@ def text_mining_12_run_caseolap_score(cat2pmids_path, all_pmid2entity2count_path
     C.calculate_entity2ntf_ndf_ratio()
 
     # Calculate distinctiveness score
-    C.calculate_all_distinctiveness_scores(dump=True)
+    C.calculate_all_distinctiveness_scores(all_or_core='all', dump=True)
 
     '''Final Score'''
     # Calculate CaseOLAP Score (combine popularity & distinctiveness)
-    C.calculate_caseolap_score(all_caseolap_name, dump=True)
+    C.calculate_caseolap_score(all_or_core='all', dump=True)
 
     # Close logfile
     logfile.close()
 
     #### Core proteins #####
+    print('\n======Core Proteins======')
     logfile = open(core_logFilePath, 'w')
-    category2pmids = json.load(open(cat2pmids_path, 'r'))
+    category2pmids = json.load(open(core_cat2pmids_path, 'r'))
     pmid2entity2count = json.load(open(core_pmid2entity2count_path, 'r'))
 
     ''' Initial Calculations'''
     # Initialize object with input data
-    C = Caseolap(category2pmids, core_pmid2entity2count_path, result_dir, category_names_path, logfile)
+    C = Caseolap(category2pmids, pmid2entity2count, result_dir, category_names_path, logfile)
 
     # Print info on categories and their number of publications
-    C.print_categories2pmid(dump=True, verbose=True)
+    C.print_categories2pmid(all_or_core='core', dump=True, verbose=True)
 
     # Map Category to its PMIDs to its Entities to the Entity's Counts
     C.map_category2pmid2entity2count()
 
     # Save all entities
-    C.get_all_entities(dump=True, verbose=True)
+    C.get_all_entities('core', dump=True, verbose=True)
 
     ''' Popularity Score (note: relies on some previous sections above)'''
     # Get the entity counts for each category
@@ -663,7 +681,7 @@ def text_mining_12_run_caseolap_score(cat2pmids_path, all_pmid2entity2count_path
     C.category2entity2tf_finder()
 
     # Calculate the popularity scores for all entities
-    C.calculate_all_popularity_scores(dump=True)
+    C.calculate_all_popularity_scores(all_or_core='core', dump=True)
 
     ''' Distinctiveness Score (note: relies on some previous sections above)'''
     # Map entities to the count of their PMIDs
@@ -679,19 +697,25 @@ def text_mining_12_run_caseolap_score(cat2pmids_path, all_pmid2entity2count_path
     C.calculate_entity2ntf_ndf_ratio()
 
     # Calculate distinctiveness score
-    C.calculate_all_distinctiveness_scores(dump=True)
+    C.calculate_all_distinctiveness_scores(all_or_core='core', dump=True)
 
     '''Final Score'''
     # Calculate CaseOLAP Score (combine popularity & distinctiveness)
-    C.calculate_caseolap_score(core_caseolap_name, dump=True)
+    C.calculate_caseolap_score(all_or_core='core', dump=True)
 
     # Close logfile
     logfile.close()
 
 
-def text_mining_13_run_inspect_entity_scores(id2syns_in, caseolap_scores_in, popular_scores_in, distinct_scores_in,
-                                            pmid_syn_count_in, remove_syns_in, cat2pmids_in, ranked_syns_out,
-                                            ranked_ent_caseolap_out, ranked_ent_popular_out, ranked_ent_distinct_out):
+
+
+def text_mining_13_run_inspect_entity_scores(id2syns_in, pmid_syn_count_in, remove_syns_in, all_caseolap_scores_in,
+                                        all_popular_scores_in, all_distinct_scores_in, all_cat2pmids_in,
+                                        core_caseolap_scores_in, core_popular_scores_in, core_distinct_scores_in,
+                                        core_cat2pmids_in, all_ranked_syns_out, all_ranked_caseolap_out,
+                                        all_ranked_popular_out, all_ranked_distinct_out, core_ranked_syns_out,
+                                        core_ranked_caseolap_out, core_ranked_popular_out,
+                                        core_ranked_distinct_out):
     '''
     The purpose of this file is so that the user can see why each entity scored
     highly; the user can see the ranked entities.
@@ -699,16 +723,16 @@ def text_mining_13_run_inspect_entity_scores(id2syns_in, caseolap_scores_in, pop
     Get the ranked synonyms.
     '''
     # Initialize the class
-    IES = InspectEntityScores(caseolap_scores_in, id2syns_in, remove_syns_in, \
-                              pmid_syn_count_in, cat2pmids_in)
+    IES = InspectEntityScores(all_caseolap_scores_in, id2syns_in, remove_syns_in, \
+                              pmid_syn_count_in, all_cat2pmids_in)
 
     '''ranked_synonyms'''
     # Export the ranked synonyms
-    IES.get_ranked_synonyms_found(cat2pmids_in, pmid_syn_count_in, ranked_syns_out)
+    IES.get_ranked_synonyms_found(all_cat2pmids_in, pmid_syn_count_in, all_ranked_syns_out)
 
     '''Ranked Entities (CaseOLAP Score: Popular + Distinct)'''
     # Sort entities by CaseOLAP scores
-    IES.sort_all_scores(caseolap_scores_in)
+    IES.sort_all_scores(all_caseolap_scores_in)
 
     # Display the proportion entities found / entities searched for
     IES.prop_entities_found()
@@ -717,41 +741,97 @@ def text_mining_13_run_inspect_entity_scores(id2syns_in, caseolap_scores_in, pop
     IES.get_entity_syn_counts()
 
     # Export & display the ranked entities, their synonyms, and synonym counts
-    IES.rank_each_category_score(ranked_ent_caseolap_out, score_component='CaseOLAP Score')
+    IES.rank_each_category_score(all_ranked_caseolap_out, score_component='CaseOLAP Score')
 
     '''Ranked Entities (Popular)'''
     # Initialize the class
-    IES = InspectEntityScores(popular_scores_in, id2syns_in, remove_syns_in, \
-                              pmid_syn_count_in, cat2pmids_in)
+    IES = InspectEntityScores(all_popular_scores_in, id2syns_in, remove_syns_in, \
+                              pmid_syn_count_in, all_cat2pmids_in)
 
-    IES.get_ranked_synonyms_found(cat2pmids_in, pmid_syn_count_in, ranked_syns_out,
+    IES.get_ranked_synonyms_found(all_cat2pmids_in, pmid_syn_count_in, all_ranked_syns_out,
                                   export=False)
 
     # Sort entities by CaseOLAP scores
-    IES.sort_all_scores(popular_scores_in)
+    IES.sort_all_scores(all_popular_scores_in)
 
     # Save ranked entites, their synonyms, and their synonym counts
     IES.get_entity_syn_counts()
 
     # Export & display the ranked entities, their synonyms, and synonym counts
-    IES.rank_each_category_score(ranked_ent_popular_out, score_component='Popularity Score')
+    IES.rank_each_category_score(all_ranked_popular_out, score_component='Popularity Score')
 
     '''Ranked Entities (Distinct)'''
     # Initialize the class
-    IES = InspectEntityScores(distinct_scores_in, id2syns_in, remove_syns_in, \
-                              pmid_syn_count_in, cat2pmids_in)
+    IES = InspectEntityScores(all_distinct_scores_in, id2syns_in, remove_syns_in, \
+                              pmid_syn_count_in, all_cat2pmids_in)
 
     # Get the ranked synonyms
-    IES.get_ranked_synonyms_found(cat2pmids_in, pmid_syn_count_in, ranked_syns_out, \
+    IES.get_ranked_synonyms_found(all_cat2pmids_in, pmid_syn_count_in, all_ranked_syns_out, \
                                   export=False)
 
     # Sort entities by CaseOLAP scores
-    IES.sort_all_scores(distinct_scores_in)
+    IES.sort_all_scores(all_distinct_scores_in)
 
     # Save ranked entites, their synonyms, and their synonym counts
     IES.get_entity_syn_counts()
 
     # Export & display the ranked entities, their synonyms, and synonym counts
-    IES.rank_each_category_score(ranked_ent_distinct_out, score_component='Distinctiveness Score')
+    IES.rank_each_category_score(all_ranked_distinct_out, score_component='Distinctiveness Score')
+
+    # Initialize the class
+    IES = InspectEntityScores(core_caseolap_scores_in, id2syns_in, remove_syns_in, \
+                              pmid_syn_count_in, core_cat2pmids_in)
+
+    '''ranked_synonyms'''
+    # Export the ranked synonyms
+    IES.get_ranked_synonyms_found(core_cat2pmids_in, pmid_syn_count_in, core_ranked_syns_out)
+
+    '''Ranked Entities (CaseOLAP Score: Popular + Distinct)'''
+    # Sort entities by CaseOLAP scores
+    IES.sort_core_scores(core_caseolap_scores_in)
+
+    # Display the proportion entities found / entities searched for
+    IES.prop_entities_found()
+
+    # Save ranked entites, their synonyms, and their synonym counts
+    IES.get_entity_syn_counts()
+
+    # Export & display the ranked entities, their synonyms, and synonym counts
+    IES.rank_each_category_score(core_ranked_caseolap_out, score_component='CaseOLAP Score')
+
+    '''Ranked Entities (Popular)'''
+    # Initialize the class
+    IES = InspectEntityScores(core_popular_scores_in, id2syns_in, remove_syns_in, \
+                              pmid_syn_count_in, core_cat2pmids_in)
+
+    IES.get_ranked_synonyms_found(core_cat2pmids_in, pmid_syn_count_in, core_ranked_syns_out,
+                                  export=False)
+
+    # Sort entities by CaseOLAP scores
+    IES.sort_core_scores(core_popular_scores_in)
+
+    # Save ranked entites, their synonyms, and their synonym counts
+    IES.get_entity_syn_counts()
+
+    # Export & display the ranked entities, their synonyms, and synonym counts
+    IES.rank_each_category_score(core_ranked_popular_out, score_component='Popularity Score')
+
+    '''Ranked Entities (Distinct)'''
+    # Initialize the class
+    IES = InspectEntityScores(core_distinct_scores_in, id2syns_in, remove_syns_in, \
+                              pmid_syn_count_in, core_cat2pmids_in)
+
+    # Get the ranked synonyms
+    IES.get_ranked_synonyms_found(core_cat2pmids_in, pmid_syn_count_in, core_ranked_syns_out, \
+                                  export=False)
+
+    # Sort entities by CaseOLAP scores
+    IES.sort_core_scores(core_distinct_scores_in)
+
+    # Save ranked entites, their synonyms, and their synonym counts
+    IES.get_entity_syn_counts()
+
+    # Export & display the ranked entities, their synonyms, and synonym counts
+    IES.rank_each_category_score(core_ranked_distinct_out, score_component='Distinctiveness Score')
 
 
