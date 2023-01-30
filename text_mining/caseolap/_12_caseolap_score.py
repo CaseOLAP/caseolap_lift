@@ -1,4 +1,4 @@
-import pandas as pd, numpy as np, matplotlib.pyplot as plt, seaborn as sns, json
+import pandas as pd, numpy as np, matplotlib.pyplot as plt, seaborn as sns, json, os
 
 
 # Note: "Term Frequency" here doesn't mean relative frequency of a term compared
@@ -54,7 +54,8 @@ class Caseolap(object):
             # Process data into a dataframe
         df = pd.DataFrame(flatdata)
         df = df.set_index('entity')
-        df.to_csv(self.result_dir + file_name + '.csv')
+        out_file = os.path.join(self.result_dir,(file_name+'.csv'))
+        df.to_csv(out_file)
         return df
 
     def dump_json(self, data, file_name):
@@ -66,7 +67,8 @@ class Caseolap(object):
         - data: Variable to export as a JSON
         - file_name: File name
         '''
-        with open(self.result_dir + file_name + '.json', 'w') as fout:
+        out_file = os.path.join(self.result_dir,(file_name+'.json'))
+        with open(out_file, 'w') as fout:
             json.dump(data, fout)
 
     def print_progress(self, msg):
@@ -109,6 +111,10 @@ class Caseolap(object):
 
         # Export counts
         if dump:
+            # check if dir exists / make
+            out_dir = os.path.join(self.result_dir,(all_or_core+'_proteins/'))
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir)
             file_name = all_or_core + '_proteins/' + all_or_core + '_categpmids'
             self.dump_json(self.category2pmids, file_name)
 
@@ -182,6 +188,10 @@ class Caseolap(object):
 
         # Export
         if dump:
+            # check if dir exists / make
+            out_dir = os.path.join(self.result_dir,(prefix+'_proteins/'))
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir)
             self.dump_json(self.all_entities, file_name=prefix + '_proteins/' + prefix + '_proteins')
             self.dump_json(self.category2entities, file_name=prefix + '_proteins/' + prefix + '_category2proteins')
 

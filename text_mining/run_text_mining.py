@@ -166,8 +166,8 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
 
 
     # Output file paths 11
-    all_outfile_pmid2entity2count = os.path.join(data_folder,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
-    core_outfile_pmid2entity2count = os.path.join(data_folder,'metadata_pmid2entity2count_2012-2022.json') # {PMID:{Entity:Count,...},...}
+    all_outfile_pmid2entity2count = os.path.join(data_folder,'all_metadata_pmid2entity2count_2012-2022-2.json') # {PMID:{Entity:Count,...},...}
+    core_outfile_pmid2entity2count = os.path.join(data_folder,'core_metadata_pmid2entity2count_2012-2022-2.json') # {PMID:{Entity:Count,...},...}
     all_cat2pmids_path = os.path.join(data_folder,'all_metadata_category2pmids_2012-2022-2.json')  # {CatName:[PMID,...], ...}
     core_cat2pmids_path = os.path.join(data_folder,'core_metadata_category2pmids_2012-2022-2.json')  # {CatName:[PMID,...], ...}
     all_logfile_path = os.path.join(log_dir,'all_metadata_update_log_2012-2022.txt')         # Similar to pmid2pcount
@@ -260,15 +260,15 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
 #    print("10_run_make_entity_counts")
 #    text_mining_10_run_make_entity_counts(remove_syns_infile, all_id2syns_path, core_id2syns_path, pmid_syn_count_in,
 #                                        all_entitycount_outfile, core_entitycount_outfile)
-    print("11_run_metadata_update")
-    text_mining_11_run_metadata_update(all_entitycount_path, core_entitycount_path, pmid2category_path,
-                                      category_names_file, all_outfile_pmid2entity2count,
-                                      core_outfile_pmid2entity2count, all_cat2pmids_path, core_cat2pmids_path,
-                                      all_logfile_path, core_logfile_path)
-    print("12_run_caseolap_score")
-    text_mining_12_run_caseolap_score(all_cat2pmids_path, core_cat2pmids_path, all_pmid2entity2count_path,
-                                      core_pmid2entity2count_path, category_names_path, all_logFilePath,
-                                      core_logFilePath, all_caseolap_name, core_caseolap_name)
+#    print("11_run_metadata_update")
+#    text_mining_11_run_metadata_update(all_entitycount_path, core_entitycount_path, pmid2category_path,
+#                                      category_names_file, all_outfile_pmid2entity2count,
+#                                      core_outfile_pmid2entity2count, all_cat2pmids_path, core_cat2pmids_path,
+#                                      all_logfile_path, core_logfile_path)
+#    print("12_run_caseolap_score")
+#    text_mining_12_run_caseolap_score(all_cat2pmids_path, core_cat2pmids_path, all_pmid2entity2count_path,
+#                                      core_pmid2entity2count_path, category_names_path, all_logFilePath,
+#                                      core_logFilePath, all_caseolap_name, core_caseolap_name, analysis_output_folder)
 
     print("13_run_inspect_entity_scores")
     text_mining_13_run_inspect_entity_scores(id2syns_in, pmid_syn_count_in, remove_syns_in, all_caseolap_scores_in,
@@ -593,10 +593,10 @@ def text_mining_11_run_metadata_update(all_entitycount_path, core_entitycount_pa
     # Close log file
     logfile.close()
 
+def text_mining_12_run_caseolap_score(all_cat2pmids_path, core_cat2pmids_path, all_pmid2entity2count_path,
+                                      core_pmid2entity2count_path, category_names_path, all_logFilePath,
+                                      core_logFilePath, all_caseolap_name, core_caseolap_name, result_dir):
 
-def text_mining_12_run_caseolap_score(all_cat2pmids_path, core_cat2pmids_path, all_pmid2entity2count_path, core_pmid2entity2count_path,
-                                     category_names_path, result_dir, all_logFilePath, core_logFilePath,
-                                     all_caseolap_name, core_caseolap_name):
     '''
     The purpose of this file is to produce CaseOLAP scores for the entities
     based on their hits in each document (pmid2pcount_path) and the documents'

@@ -1,5 +1,4 @@
-import json, pandas as pd, numpy as np, csv
-
+import json, pandas as pd, numpy as np, csv, os
 
 # Note: counts = #hits, the number of times a synonym was found in the text
 
@@ -23,6 +22,7 @@ class InspectEntityScores(object):
         - pmid_syn_count_in: Input file. PMID->Synonyms->SynonymCounts
         - cat2pmids_in: Input file. Category->PMIDS
         '''
+
         # {Entity:{Syn1:count1, Syn2:count2, ...},...}
         self.ranked_ents_counts = dict()
 
@@ -113,6 +113,10 @@ class InspectEntityScores(object):
             # Export category's sorted "synonym->counts"
             if export == True:
                 path = ranked_syns_out.split('.txt')[0] + '_' + cat + '.txt'
+                # make directory
+                path_dir = os.path.dirname(os.path.abspath(path))
+                if not (os.path.exists(path_dir)):
+                    os.makedirs(path_dir)
                 with open(path, 'w') as fout:
                     for syn, count in syn2count[cat].items():
                         fout.write(syn + ': ' + str(count) + '\n')
@@ -220,6 +224,10 @@ class InspectEntityScores(object):
         - ranked_ent_path: Output file. Where the ranked ranking entities
           will be saved.
         '''
+        # make directory
+        path_dir = os.path.dirname(os.path.abspath(ranked_ent_path))
+        if not (os.path.exists(path_dir)):
+            os.makedirs(path_dir)
 
         with open(ranked_ent_path, 'w') as fout:
             # Print what the format will look like for this document
@@ -245,6 +253,10 @@ class InspectEntityScores(object):
                 for syn, count in syn_counts.items():
                     output_msg(str(count) + ': ' + syn, fout, print_msg)
 
+            ## check if dir exists / make
+            #out_dir = os.path.join(self.result_dir,(all_or_core+'_proteins/'))
+            #if not os.path.exists(out_dir):
+            #    os.makedirs(out_dir)
             path = ranked_ent_path[:-4].split('/')
             path = '/'.join(path[:-1]) + '/dictionary_' + path[-1] + '.json'
             json.dump(self.ranked_ents_counts[cat], \
