@@ -123,6 +123,7 @@ class InspectEntityScores(object):
 
         self.syn2count = syn2count
 
+
     '''
     PART 2: Getting the ranked entities
     '''

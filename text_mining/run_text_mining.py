@@ -257,7 +257,7 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
 #    print("09_run_screen_synonyms")
 #    text_mining_09_run_screen_synonyms(data_folder, id2syns, eng_path, short_path, rem_path)
 
-#    print("10_run_make_entity_counts")
+#   print("10_run_make_entity_counts")
 #    text_mining_10_run_make_entity_counts(remove_syns_infile, all_id2syns_path, core_id2syns_path, pmid_syn_count_in,
 #                                        all_entitycount_outfile, core_entitycount_outfile)
 #    print("11_run_metadata_update")
@@ -723,66 +723,68 @@ def text_mining_13_run_inspect_entity_scores(id2syns_in, pmid_syn_count_in, remo
     Get the ranked entities.
     Get the ranked synonyms.
     '''
-    # Initialize the class
-    IES = InspectEntityScores(all_caseolap_scores_in, id2syns_in, remove_syns_in, \
-                              pmid_syn_count_in, all_cat2pmids_in)
+#    # Initialize the class
+#    IES = InspectEntityScores(all_caseolap_scores_in, id2syns_in, remove_syns_in, \
+#                              pmid_syn_count_in, all_cat2pmids_in)
+#
+#    '''ranked_synonyms'''
+#    # Export the ranked synonyms
+#    IES.get_ranked_synonyms_found(all_cat2pmids_in, pmid_syn_count_in, all_ranked_syns_out)
+#
+#    '''Ranked Entities (CaseOLAP Score: Popular + Distinct)'''
+#    # Sort entities by CaseOLAP scores
+#    IES.sort_all_scores(all_caseolap_scores_in)
+#
+#    # Display the proportion entities found / entities searched for
+#    IES.prop_entities_found()
+#
+#    # Save ranked entites, their synonyms, and their synonym counts
+#    IES.get_entity_syn_counts()
+#
+#    # Export & display the ranked entities, their synonyms, and synonym counts
+#    IES.rank_each_category_score(all_ranked_caseolap_out, score_component='CaseOLAP Score')
+#
+#    '''Ranked Entities (Popular)'''
+#    # Initialize the class
+#    IES = InspectEntityScores(all_popular_scores_in, id2syns_in, remove_syns_in, \
+#                              pmid_syn_count_in, all_cat2pmids_in)
+#
+#    IES.get_ranked_synonyms_found(all_cat2pmids_in, pmid_syn_count_in, all_ranked_syns_out,
+#                                  export=False)
+#
+#    # Sort entities by CaseOLAP scores
+#    IES.sort_all_scores(all_popular_scores_in)
+#
+#    # Save ranked entites, their synonyms, and their synonym counts
+#    IES.get_entity_syn_counts()
+#
+#    # Export & display the ranked entities, their synonyms, and synonym counts
+#    IES.rank_each_category_score(all_ranked_popular_out, score_component='Popularity Score')
+#
+#    '''Ranked Entities (Distinct)'''
+#    # Initialize the class
+#    IES = InspectEntityScores(all_distinct_scores_in, id2syns_in, remove_syns_in, \
+#                              pmid_syn_count_in, all_cat2pmids_in)
+#
+#    # Get the ranked synonyms
+#    IES.get_ranked_synonyms_found(all_cat2pmids_in, pmid_syn_count_in, all_ranked_syns_out, \
+#                                  export=False)
+#
+#    # Sort entities by CaseOLAP scores
+#    IES.sort_all_scores(all_distinct_scores_in)
+#
+#    # Save ranked entites, their synonyms, and their synonym counts
+#    IES.get_entity_syn_counts()
+#
+#    # Export & display the ranked entities, their synonyms, and synonym counts
+#    IES.rank_each_category_score(all_ranked_distinct_out, score_component='Distinctiveness Score')
 
-    '''ranked_synonyms'''
-    # Export the ranked synonyms
-    IES.get_ranked_synonyms_found(all_cat2pmids_in, pmid_syn_count_in, all_ranked_syns_out)
-
-    '''Ranked Entities (CaseOLAP Score: Popular + Distinct)'''
-    # Sort entities by CaseOLAP scores
-    IES.sort_all_scores(all_caseolap_scores_in)
-
-    # Display the proportion entities found / entities searched for
-    IES.prop_entities_found()
-
-    # Save ranked entites, their synonyms, and their synonym counts
-    IES.get_entity_syn_counts()
-
-    # Export & display the ranked entities, their synonyms, and synonym counts
-    IES.rank_each_category_score(all_ranked_caseolap_out, score_component='CaseOLAP Score')
-
-    '''Ranked Entities (Popular)'''
-    # Initialize the class
-    IES = InspectEntityScores(all_popular_scores_in, id2syns_in, remove_syns_in, \
-                              pmid_syn_count_in, all_cat2pmids_in)
-
-    IES.get_ranked_synonyms_found(all_cat2pmids_in, pmid_syn_count_in, all_ranked_syns_out,
-                                  export=False)
-
-    # Sort entities by CaseOLAP scores
-    IES.sort_all_scores(all_popular_scores_in)
-
-    # Save ranked entites, their synonyms, and their synonym counts
-    IES.get_entity_syn_counts()
-
-    # Export & display the ranked entities, their synonyms, and synonym counts
-    IES.rank_each_category_score(all_ranked_popular_out, score_component='Popularity Score')
-
-    '''Ranked Entities (Distinct)'''
-    # Initialize the class
-    IES = InspectEntityScores(all_distinct_scores_in, id2syns_in, remove_syns_in, \
-                              pmid_syn_count_in, all_cat2pmids_in)
-
-    # Get the ranked synonyms
-    IES.get_ranked_synonyms_found(all_cat2pmids_in, pmid_syn_count_in, all_ranked_syns_out, \
-                                  export=False)
-
-    # Sort entities by CaseOLAP scores
-    IES.sort_all_scores(all_distinct_scores_in)
-
-    # Save ranked entites, their synonyms, and their synonym counts
-    IES.get_entity_syn_counts()
-
-    # Export & display the ranked entities, their synonyms, and synonym counts
-    IES.rank_each_category_score(all_ranked_distinct_out, score_component='Distinctiveness Score')
-
+    ### START OF CORE PROTEINS ONLY ###
     # Initialize the class
     IES = InspectEntityScores(core_caseolap_scores_in, id2syns_in, remove_syns_in, \
                               pmid_syn_count_in, core_cat2pmids_in)
-
+    print("asdfasdf")
+    print(core_cat2pmids_in, pmid_syn_count_in, core_ranked_syns_out)
     '''ranked_synonyms'''
     # Export the ranked synonyms
     IES.get_ranked_synonyms_found(core_cat2pmids_in, pmid_syn_count_in, core_ranked_syns_out)
