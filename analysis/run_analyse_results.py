@@ -2,15 +2,129 @@
 import os, sys
 from analysis._03_text_mining_association_analysis import *
 
-def parse_id_to_synonym(entity_count_files):
+def parse_ranked_ent_df(entity_count_folder):
+
     # prepare ranked_ent_df
     ranked_ent ={}
-    for f in entity_count_files:
-        tag = f.split("_")[-1].strip(".json")
-        ent_dict = json.load(open(f,'r'))
-        ranked_ent[tag] = ent_dict
+    for filename in os.listdir(entity_count_folder):
+        f = os.path.join(entity_count_folder, filename)
+        # checking if it is a file
+        if os.path.isfile(f) and "json" in f:
+    #         print(tag)
+            tag = f.split("_")[-1].strip(".json")
+            ent_dict = json.load(open(f,'r'))
+    #         print(ent_dict)
+            ranked_ent[tag] = ent_dict
     ranked_ent_df = pd.DataFrame(ranked_ent)
-    return prepare_synonyms(ranked_ent_df)
+
+    print(ranked_ent_df)
+    return ranked_ent_df
+
+
+def merge_redundant_ids(prot_to_syn, scores):
+    # protein groups to synonym
+    temp_sets = {k: set(v) for k, v in prot_to_syn.items()}  # duplicate synonyms will be in same order
+    temp = {k: ", ".join(v) for k, v in temp_sets.items()}  # joining the synonyms
+    prot_to_syn_df = pd.DataFrame.from_dict(temp, orient='index')  # creating dataframe out of dict
+    prot_to_syn_df.columns = ["Synonyms"]
+    prot_to_syn_df.index.name = "entity"
+
+    # creating the data frame with "Mapped Proteins" as index
+    scores = scores.set_index("entity")
+    merged_df = scores.merge(prot_to_syn_df, right_index=True, left_index=True, how='left')
+
+    # obtaining list of all synonyms
+    all_syns = prot_to_syn_df[['Synonyms']].values
+
+    # no_repeat_syns = set(all_syns)
+    no_repeat_syns = []
+    for i in all_syns:
+        if i not in no_repeat_syns:
+            no_repeat_syns.append(i)
+
+    # for each synonym
+    for syn in no_repeat_syns:
+
+        for i in syn:
+            syn = i
+
+        # take a subset of that data frame - only those synonyms
+        syn_df = merged_df.loc[merged_df['Synonyms'] == syn]
+        # no merging if it's the only entry with those synonyms
+        if syn_df.shape[0] == 1:
+            continue
+
+        # obtaining list of all mapped proteins in this subset
+        all_mappedProteins = syn_df.index.to_list()
+
+        # obtaining list of all mapped proteins in reverse
+        reverse_all_mappedProteins = []
+        for i in all_mappedProteins:
+            reverse_all_mappedProteins.insert(0, i)
+
+        # these are the proteins that will be marked 'deleted' later on
+        deleted_prots = []
+
+        # starting at the beginning of the protein list
+        for protein in all_mappedProteins:
+
+            # delete protein from the reversed list so we don't match it against itself
+            del reverse_all_mappedProteins[-1]
+
+            # if this protein was not marked 'deleted', obtain its scores and synonyms
+            if protein not in deleted_prots:
+
+                # protein of focus' score
+                prot_score = scores.loc[protein].to_numpy()
+
+                # protein of focus' synonym
+                prot_synonym = prot_to_syn[protein]
+
+                # these will stores the UniRefs and mapped proteins to be appended
+                mappedProts_to_append = []
+
+                # now to compared against another protein
+                for other_protein in reverse_all_mappedProteins:
+
+                    # if this protein was not marked 'deleted', obtain its scores and synonyms as well
+                    if other_protein != 'deleted':
+
+                        # score of protein being compared
+                        other_prot_score = scores.loc[other_protein].to_numpy()
+
+                        # synonym of protein being compared
+                        other_prot_syns = prot_to_syn[other_protein]
+
+                        # if protein of focus and the one being compared match in score and synonym:
+                        if (prot_synonym == other_prot_syns) and (
+                        np.array_equal(prot_score, other_prot_score, equal_nan=True)):
+
+                            # other_protein and its UniRef need to be appended
+                            mappedProts_to_append.append(other_protein)
+
+                            # marked other_protein from original and reversed list as 'deleted'
+                            deleted_prots.append(other_protein)
+                            reverse_all_mappedProteins = [i.replace(other_protein, 'deleted') for i in
+                                                          reverse_all_mappedProteins]
+
+                            # removing other_protein entry in df
+                            merged_df = merged_df.drop(index=other_protein)
+
+                # append other proteins to same entry as protein of focus
+                mappedProts_to_append.append(protein)
+
+                mappedProts_to_append = ";".join(mappedProts_to_append)
+                protein = str(protein)
+
+                merged_df = merged_df.rename(index={protein: mappedProts_to_append})
+
+    # setting the index back to protein groups
+    merged_df = merged_df.reset_index()
+
+    syns_column = merged_df.pop('Synonyms')
+    merged_df.insert(1, 'Synonyms', syns_column)
+
+    return merged_df
 
 
 def get_required_files(root_directory,merge_proteins, use_core_proteins):
@@ -22,30 +136,34 @@ def get_required_files(root_directory,merge_proteins, use_core_proteins):
     data_folder = os.path.join(root_directory,'data')
 
     ### input files ###
-    caseolap_result_folder = os.path.join(root_directory,"output/text_mining_results/all_proteins/")
-    if use_core_proteins:
-        caseolap_result_folder = os.path.join(root_directory, "output/text_mining_results/core_proteins/")
 
-    caseolap_results_file = os.path.join(caseolap_result_folder,"caseolap.csv")
+    # caseolap_result_folder = os.path.join(root_directory,"output/text_mining_results/all_proteins/")#TODO
+    caseolap_result_folder = os.path.join(root_directory,"scratch/result/all_proteins/")
+    caseolap_results_file = os.path.join(caseolap_result_folder, "all_caseolap.csv")
+    if use_core_proteins:
+        # caseolap_result_folder = os.path.join(root_directory, "output/text_mining_results/core_proteins/")#
+        caseolap_result_folder = os.path.join(root_directory, "scratch/result/core_proteins/")
+        caseolap_results_file = os.path.join(caseolap_result_folder, "core_caseolap.csv")
 
     reactome_uniprot_to_pathway_file = os.path.join(data_folder,"Reactome/UniProt2Reactome_All_Levels.txt")
     reactome_hierarchy_to_pathway_file = os.path.join(data_folder,"Reactome/ReactomePathwaysRelation.txt")
     reactome_id_to_pathway_name_file = os.path.join(data_folder,"Reactome/ReactomePathways.txt")
 
     # synonym related files for redundancy removal
-    entity_count_files = []
-    if merge_proteins:
-        entity_count_folder = os.path.join(caseolap_result_folder,'ranked_proteins/ranked_caseolap_score')
-
-        for f in os.listdir(entity_count_folder):
-            if 'dictionary_ranked_proteins' in f:
-                entity_count_files += [os.path.join(entity_count_folder,f)]
+    entity_count_file = os.path.join(caseolap_result_folder,"ranked_proteins/ranked_caseolap_score")
+    # entity_count_files = []
+    # if merge_proteins:
+    #     entity_count_folder = os.path.join(caseolap_result_folder,'ranked_proteins/ranked_caseolap_score')
+    #
+    #     for f in os.listdir(entity_count_folder):
+    #         if 'dictionary_ranked_proteins' in f:
+    #             entity_count_files += [os.path.join(entity_count_folder,f)]
 
     ret = {'caseolap_results':caseolap_results_file,
            'reactome_data':[reactome_uniprot_to_pathway_file,
                             reactome_hierarchy_to_pathway_file,
                             reactome_id_to_pathway_name_file],
-           'entity_count_files':entity_count_files}
+           'entity_count_files':entity_count_file}
 
     # check files
     for k,v in ret.items():
@@ -54,7 +172,8 @@ def get_required_files(root_directory,merge_proteins, use_core_proteins):
         else:
             files_to_check = [v]
         for f in files_to_check:
-            if not os.path.isfile(f):
+            if not os.path.exists(f):
+            # if (not os.path.isfile(f):
                 print("Input file missing! %s missing at path %s"%(k,f))
                 return
 
@@ -88,7 +207,7 @@ def load_files(root_directory, merge_proteins, use_core_proteins):
     reactome_data = [hierarchical_relationships, unique_reactome_ids,reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name]
 
     # load id_to_synonym
-    id_to_synonym = parse_id_to_synonym(input_files['entity_count_files'])
+    id_to_synonym = prepare_synonyms(parse_ranked_ent_df(input_files['entity_count_files']))
 
     return raw_caseolap_scores, reactome_data, id_to_synonym
 
@@ -279,7 +398,8 @@ def run_pathway_analysis(summary_table):
     #                                                      all_union_pa_df, uniprot_to_uniref, cvds,
     #                                              pathway_id_to_pathway_name, reactome_pathway_to_unique_proteins)
 
-def load_reactome_data():
+
+def load_reactome_data(reactome_hierarchy_to_pathway,reactome_id_to_pathway_name,reactome_uniprot_to_pathway):
     # Load in the reactome hierarchial information for human. See function definition in first cell.
     hierarchical_relationships, unique_reactome_ids = \
         extract_human_hierarchical_information(reactome_hierarchy_to_pathway)
@@ -314,11 +434,14 @@ def load_reactome_data():
     pruned_G_root_pathways.name = 'Reactome hierarchical tree pruned with root pathway membership'
     print(nx.info(pruned_G_root_pathways))
 
-def generate_category_table(zscore_caseolap_file, z_score_threshold=3.0):
+
+def generate_category_table(zscore_caseolap_file, merged, output_directory=".", z_score_threshold=3.0):
 
     # reading the csv file
     summary_table = pd.read_csv(zscore_caseolap_file)
     summary_table = summary_table.set_index('entity')
+    summary_table = summary_table.drop('index',axis=1)
+    zscores_df = summary_table.copy(deep=True)
     #TODO zscores_df = subset of summary_table or copy
 
     # obtaining list of CVDs
@@ -352,7 +475,7 @@ def generate_category_table(zscore_caseolap_file, z_score_threshold=3.0):
     # prepare plot values above threshold line
     subproteome_plot_values = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in cvd_subproteome_to_scores.items()]))
 
-    cvd_proteomes_violin_plot(zscores_df, subproteome_plot_values)
+    cvd_proteomes_violin_plot(zscores_df, subproteome_plot_values, show_figure=False)
 
     # Category I: Protein groups with score > 0 for all CVDs
     summary_table['Category I'] = (summary_table.isnull().sum(axis=1) == 0)
@@ -457,18 +580,19 @@ def generate_category_table(zscore_caseolap_file, z_score_threshold=3.0):
     summary_table.head()
 
     # write table
-    summary_table.to_csv('./results/SupplementaryData2_Summary_Table.csv') #TODO
+    out_file = os.path.join(output_directory,"SupplementaryData2_Summary_Table.csv")
+    summary_table.to_csv(out_file) #TODO
 
 
 def analyze_results(root_directory, z_score_thresh=3.0, merge_proteins=True, use_core_proteins=True, debug=True):
 
     output_directory = os.path.join(root_directory,'output/analyze_results_output')
-    figure_direcotry = os.path.join(output_directory,'figures')
+    figure_directory = os.path.join(output_directory,'figures')
     # make data folders if doesn't exist
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
-    if not os.path.exists(figure_direcotry):
-        os.makedirs(figure_direcotry)
+    if not os.path.exists(figure_directory):
+        os.makedirs(figure_directory)
 
     # error checking and load files
     raw_caseolap_scores, reactome_data, id_to_synonym = load_files(root_directory, merge_proteins, use_core_proteins)
@@ -519,7 +643,10 @@ def analyze_results(root_directory, z_score_thresh=3.0, merge_proteins=True, use
     zscores_df = convert_to_zscore(df, include_zeros=False, columns_to_ignore=['entity'])
     zscores_df = zscores_df.set_index('entity')
     zscores_df.head()
-    zscores_df.to_csv(os.path.join(output_directory,"merged_caseolap_zscores.csv"), index=True)
+    zscore_table_outfile = os.path.join(output_directory,"merged_caseolap_zscores.csv")
+    zscores_df.to_csv(zscore_table_outfile, index=True)
+
+    generate_category_table(zscore_table_outfile,merged,output_directory=output_directory,z_score_threshold=z_score_thresh)
 
 
 
