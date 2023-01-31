@@ -335,7 +335,7 @@ def convert_to_zscore(original_df, include_zeros = False, columns_to_ignore=['Pr
 
     return new_df
 
-def cvd_proteomes_violin_plot(data, subproteome_plot_values,
+def cvd_proteomes_violin_plot(data, subproteome_plot_values, show_figure=True,
                               out_file = './caseolap_zscore_violin_plot.pdf'):
 
     sns.set_theme(style="darkgrid")
@@ -386,7 +386,8 @@ def cvd_proteomes_violin_plot(data, subproteome_plot_values,
 #     ax.set_yticklabels(ax.get_ymajorticklabels(), weight='bold')
 
     plt.savefig(out_file)
-    plt.show()
+    if show_figure:
+        plt.show()
     
 
 '''
