@@ -123,7 +123,8 @@ def parse_output_folder(folder):
     # output_file.write_text("output")
 
 
-def load_mesh_terms(output_folder,debug=False):
+def load_mesh_terms(output_folder,file_to_link_file,debug=False):
+
     if debug:
         print("Importing list of valid MeSH terms")
 
@@ -132,7 +133,7 @@ def load_mesh_terms(output_folder,debug=False):
     input_file = os.path.join(data_folder, 'MeSH/mtrees2021.bin')
     file_exists = check_file((input_file))
     if not file_exists:
-        ret = download_data({'MeSH':{'mtrees2021.bin':False}}, data_folder)
+        ret = download_data({'MeSH':{'mtrees2021.bin':False}}, data_folder, file_to_link_file)
 
     # parse list of valid mesh terms
     valid_mesh_terms = set([l.strip("\n").split(";")[1] for l in open(input_file,"r").readlines()])
@@ -140,7 +141,7 @@ def load_mesh_terms(output_folder,debug=False):
     return valid_mesh_terms
 
 
-def load_go_terms(output_folder, debug=False):
+def load_go_terms(output_folder, file_to_link_file, debug=False):
     if debug:
         print("Importing list of valid GO-terms")
     # Check if go term file exists, otherwise download
@@ -148,7 +149,7 @@ def load_go_terms(output_folder, debug=False):
     input_file = os.path.join(data_folder, 'GO/go-basic.obo')
     file_exists = check_file(input_file)
     if not file_exists:
-        ret = download_data({'GO':{'go-basic.obo':False}}, data_folder)
+        ret = download_data({'GO':{'go-basic.obo':False}}, data_folder, file_to_link_file)
 
     # parse list of valid go terms
     GO_TAG = 'id: '
@@ -170,10 +171,16 @@ def preprocessing(args, debug=False):
 
     # check if output folder is valid, otherwise create the folder
     output_folder = parse_output_folder(args.output_folder)
+    # prepare data folders
+    data_folder = os.path.join(output_folder,'data')
+    mapping_folder = os.path.join(output_folder,'parsed_mappings')
+    analysis_output_folder = os.path.join(output_folder,'output')
+    config_folder = os.path.join(output_folder,'config')
+    file_to_link_file = os.path.join(config_folder,'knowledge_base_links.json')
 
     # import list of valid mesh and go terms to check user input against
-    valid_mesh_terms = load_mesh_terms(output_folder, debug=debug)
-    valid_go_terms = load_go_terms(output_folder, debug=debug)
+    valid_mesh_terms = load_mesh_terms(output_folder,file_to_link_file, debug=debug)
+    valid_go_terms = load_go_terms(output_folder,file_to_link_file, debug=debug)
 
     # Check that all required arguments are provided
     # At minimum, user must provide a parameter file OR ((protein_list OR GO-term) AND (disease_list))
@@ -226,12 +233,6 @@ def preprocessing(args, debug=False):
                    'filter_against_proteome':filter_against_proteome
                    }
 
-    # prepare data folders
-    data_folder = os.path.join(output_folder,'data')
-    mapping_folder = os.path.join(output_folder,'parsed_mappings')
-    analysis_output_folder = os.path.join(output_folder,'output')
-    config_folder = os.path.join(output_folder,'config')
-    file_to_link_file = os.path.join(config_folder,'knowledge_base_links.json')
 
 
     # save parameters as json in output folder
