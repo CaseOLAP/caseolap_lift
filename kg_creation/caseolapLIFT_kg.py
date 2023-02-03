@@ -15,33 +15,35 @@ from tqdm import tqdm
 from grape import Graph
 
 #assemble mesh tree/mesh--cvd
-from assemble_kg.mesh2cvd import parse_mesh_tree
-from assemble_kg.mesh2cvd import mesh2triples
+from kg_creation.assemble_kg.mesh2cvd import parse_mesh_tree
+from kg_creation.assemble_kg.mesh2cvd import mesh2triples
 
 #assemble caseolap (protein--cvd)
-from assemble_kg.caseolap_cvd2protein import caseolap2triples
+from kg_creation.assemble_kg.caseolap_cvd2protein import caseolap2triples
 
 #assemble protein--pathway
-from assemble_kg.protein2pathway import pathway2triples
+from kg_creation.assemble_kg.protein2pathway import pathway2triples
 
 #assemble reactome hierarchy
-from assemble_kg.reactome_hierarchy import reactome2reactome
+from kg_creation.assemble_kg.reactome_hierarchy import reactome2reactome
 
 #assemble PPI protein--protein
-from assemble_kg.protein2protein import protein2triples
+from kg_creation.assemble_kg.protein2protein import protein2triples
 
 #assemble TF protein--protein
-from assemble_kg.transcription_protein2protein import transcription_protein2triples
+from kg_creation.assemble_kg.transcription_protein2protein import transcription_protein2triples
 
 #final graph data
-from assemble_kg.final_graph_creation import graph_create
+from kg_creation.assemble_kg.final_graph_creation import graph_create
 
 class caseolapLIFT_knowledge_graph:
     def __init__(self, include_STRING: bool, \
                  include_REACTOME: bool, \
                  include_MeSH: bool, \
                  include_TF: bool, \
-                 caseolap_SCALING = "none"):
+                 caseolap_SCALING = "raw",
+                 root_directory='..',
+                 output_directory='../output/'):
         """
         ARGS:
             include_STRING: bool whether to include STRING Protein Protein interactions
@@ -57,31 +59,30 @@ class caseolapLIFT_knowledge_graph:
         """
 
         #REQUIRED FILES
-        ROOT = ".."
 
         #mesh (downloaded from irsyad-setup.py)
-        mesh_tree_file = ROOT + "/data/MeSH/mtrees2022.bin"
-        # categories_file = ROOT + "/caseolap/input/categories.txt"
-        categories_file = ROOT + "/scratch/categories.txt"
+        mesh_tree_file = os.path.join(root_directory, "data/MeSH/mtrees2022.bin")
+        # categories_file = os.path.join(root_directory,"caseolap/input/categories.txt")
+        categories_file = os.path.join(root_directory, "scratch/categories.txt")
 
-        mesh_tree_to_mesh_id_file = ROOT + "/parsed_mappings/MeSH/edges_meshtree-IS-meshid_disease.csv"
-        edges_meshtree2meshtree_hierarchy = ROOT + "/parsed_mappings/MeSH/edges_meshtree_to_meshtree.csv"
+        mesh_tree_to_mesh_id_file = os.path.join(root_directory, "parsed_mappings/MeSH/edges_meshtree-IS-meshid_disease.csv")
+        edges_meshtree2meshtree_hierarchy = os.path.join(root_directory, "parsed_mappings/MeSH/edges_meshtree_to_meshtree.csv")
 
         #caseolap
-        # caseolap_csv = ROOT + "/caseolap/result/all_proteins/all_caseolap.csv"
-        caseolap_csv = ROOT + '/scratch/all_caseolap.csv'
+        # caseolap_csv = os.path.join(root_directory,"caseolap/result/all_proteins/all_caseolap.csv")
+        caseolap_csv = os.path.join(root_directory, 'scratch/result/all_proteins/all_caseolap.csv')
 
         #reactome
-        protein2pathway = ROOT + "/output/kg/reactome_edges.csv"
+        protein2pathway = os.path.join(root_directory, "output/kg/reactome_edges.csv")
 
         #reactome hierarchy
-        reactome_hierarchy = ROOT + "/data/Reactome/ReactomePathwaysRelation.txt"
+        reactome_hierarchy = os.path.join(root_directory, "data/Reactome/ReactomePathwaysRelation.txt")
 
         #string ppi
-        string_edge = ROOT + "/output/kg/string_ppi.csv"
+        string_edge = os.path.join(root_directory, "output/kg/string_ppi.csv")
 
         #transcription factor dependence
-        tf_edge = ROOT + "/output/kg/target_protein_id_2_tf_protein_id.json"
+        tf_edge = os.path.join(root_directory, "output/kg/target_protein_id_2_tf_protein_id.json")
 
         print("\ncaseolapLIFT KG creation")
 
@@ -158,15 +159,15 @@ class caseolapLIFT_knowledge_graph:
 
         #caseolap
         print("assembling caseolap--protein relation...", end = " ")
-        if caseolap_SCALING == "z-score":
+        if caseolap_SCALING == "z_score":
             caseolap_kg = caseolap2triples(caseolap_csv, SCALING = "z-score")
-        elif caseolap_SCALING == "z-score+1":
+        elif caseolap_SCALING == "scaled_z_score":
             caseolap_kg = caseolap2triples(caseolap_csv, SCALING = "z-score+1") 
-        elif caseolap_SCALING == "none":
+        elif caseolap_SCALING == "raw":
             caseolap_kg = caseolap2triples(caseolap_csv) 
         else:
             caseolap_kg = caseolap2triples(caseolap_csv) 
-            caseolap_SCALING = "none"
+            caseolap_SCALING = "raw"
         print("success (scaling = %s)" % caseolap_SCALING)
 
 
@@ -190,12 +191,13 @@ class caseolapLIFT_knowledge_graph:
             tf_kg = transcription_protein2triples(tf_edge)
             print("success")
 
-        if not os.path.exists("../output/graph_data"):
-            os.mkdir("../output/graph_data")
-        print("\nedge list and node list graph data in: ../output/graph_data/")
+        graph_output_dir = os.path.join(output_directory,'graph_data')
+        if not os.path.exists(graph_output_dir):
+            os.mkdir(graph_output_dir)
+        print("\nedge list and node list graph data in: %s"%graph_output_dir)
 
         
-        graph_create(mesh_kg, caseolap_kg, reactome_kg, ppi_kg, tf_kg, reactome_hierarchy_kg)
+        graph_create(mesh_kg, caseolap_kg, reactome_kg, ppi_kg, tf_kg, reactome_hierarchy_kg, output_directory=graph_output_dir)
         print("done")
 
         print("\n-----------------------------------------------\n")
@@ -203,12 +205,12 @@ class caseolapLIFT_knowledge_graph:
 
     @staticmethod
     def knowledge_graph():
-        return Graph.from_csv(node_path ="../output/graph_data/merged_node_list.tsv",
+        return Graph.from_csv(node_path ="./output/graph_data/merged_node_list.tsv",
                               node_list_separator = "\t",
                               node_list_header = True,
                               nodes_column = "node",
                               node_list_node_types_column = "node_type",
-                              edge_path ="../output/graph_data/merged_edge_list.tsv",
+                              edge_path ="./output/graph_data/merged_edge_list.tsv",
                               edge_list_separator = "\t",
                               edge_list_header = True,
                               sources_column = "head",

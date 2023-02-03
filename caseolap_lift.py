@@ -10,8 +10,9 @@ from preprocessing.entity_set_expansion import prepare_subcellular_compartment_p
 from text_mining import *
 from analysis.run_analyse_results import analyze_results
 from text_mining.run_text_mining import run_text_mining
-
+# from kg_creation.caseolapLIFT_kg import *
 from utils.FileConverter import *
+from kg_creation.caseolapLIFT_kg import caseolapLIFT_knowledge_graph
 
 def parse_abbreviations(input, num_categories, debug=False):
 
@@ -434,8 +435,14 @@ def prepare_kg(args):
     # save parameters as json in output folder
     save_parameters(analysis_output_folder, parameters, debug=True)
 
-    # Run the text mining modules
-    # TODO
+    caseolapLIFT = caseolapLIFT_knowledge_graph(parameters['include_ppi'],
+                                                parameters['include_pw'],
+                                                parameters['include_mesh'],
+                                                parameters['include_tfd'],
+                                                parameters['caseolap_score_type'],
+                                                root_directory=output_folder,
+                                                output_directory=analysis_output_folder)
+    # graph = caseolapLIFT.knowledge_graph()
 
     print("Done with prepare knowledge graph module.")
     return True
