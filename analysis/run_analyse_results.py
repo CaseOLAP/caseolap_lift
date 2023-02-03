@@ -489,8 +489,10 @@ def generate_category_table(zscore_caseolap_file, merged, output_directory=".", 
 
     # print("%d unique protein groups and %d proteins in Category I"%(len(category_i_unirefs), len(category_i_proteins)))
     print("%d proteins in Category I" % (len(category_i_proteins)))
+    cat_i_heatmap_outfile = os.path.join(output_directory,'Category_I_Heatmap.pdf')
 
-    make_category_i_heatmap(summary_table[summary_table['Category I'] == True][CVDs], sort_by='mean')
+    make_category_i_heatmap(summary_table[summary_table['Category I'] == True][CVDs], sort_by='mean',
+                            out_file = cat_i_heatmap_outfile)
 
     zscore_cutoff_table(zscores_df)
     print("z-score threshold used for this analysis: %f" % (z_score_threshold))
@@ -573,9 +575,8 @@ def generate_category_table(zscore_caseolap_file, merged, output_directory=".", 
     upplot(data_series)
     plt.show()
 
-    summary_table['Mapped Proteins'] = merged['Mapped Proteins']
-    summary_table['Synonyms'] = merged['Synonyms']
-    new_order = ['Mapped Proteins', 'Synonyms'] + list(summary_table.columns[:-2])
+    summary_table['Synonyms'] = list(merged['Synonyms'])
+    new_order = ['Synonyms'] + list(summary_table.columns[:-1])
     summary_table = summary_table[new_order]
     summary_table.head()
 
