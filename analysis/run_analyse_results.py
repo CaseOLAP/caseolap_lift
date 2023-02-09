@@ -138,11 +138,11 @@ def get_required_files(root_directory,merge_proteins, use_core_proteins):
     ### input files ###
 
     # caseolap_result_folder = os.path.join(root_directory,"output/text_mining_results/all_proteins/")#TODO
-    caseolap_result_folder = os.path.join(root_directory,"scratch/result/all_proteins/")
+    caseolap_result_folder = os.path.join(root_directory,"output/all_proteins/")
     caseolap_results_file = os.path.join(caseolap_result_folder, "all_caseolap.csv")
     if use_core_proteins:
         # caseolap_result_folder = os.path.join(root_directory, "output/text_mining_results/core_proteins/")#
-        caseolap_result_folder = os.path.join(root_directory, "scratch/result/core_proteins/")
+        caseolap_result_folder = os.path.join(root_directory, "output/core_proteins/")
         caseolap_results_file = os.path.join(caseolap_result_folder, "core_caseolap.csv")
 
     reactome_uniprot_to_pathway_file = os.path.join(data_folder,"Reactome/UniProt2Reactome_All_Levels.txt")
@@ -191,20 +191,9 @@ def load_files(root_directory, merge_proteins, use_core_proteins):
     # load CaseOLAP scores
     raw_caseolap_scores = pd.read_csv(input_files['caseolap_results'])
 
-    # load Reactome data
-    reactome_uniprot_to_pathway, reactome_hierarchy_to_pathway, reactome_id_to_pathway_name = input_files['reactome_data']
-    # Load in the reactome hierarchial information for human. See function definition in first cell.
-    hierarchical_relationships, unique_reactome_ids = \
-        extract_human_hierarchical_information(reactome_hierarchy_to_pathway)
 
-    # Load in pathway id to proteins relationships. See function definition in first cell.
-    reactome_pathway_to_unique_proteins = extract_pathway_to_proteins(reactome_uniprot_to_pathway,
-                                                                      exclude_isoforms=False)
-
-    # Load in mapping of reactome pathway id to pathway name
-    pathway_id_to_pathway_name = extract_pathway_id_to_pathway_name(reactome_id_to_pathway_name)
-
-    reactome_data = [hierarchical_relationships, unique_reactome_ids,reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name]
+    hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, pruned_G_root_pathways,G, root_pathway_familiar_relations = load_reactome_data(input_files['reactome_data'])
+    reactome_data = [hierarchical_relationships, unique_reactome_ids,reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name,pruned_G_root_pathways,root_pathway_familiar_relations]
 
     # load id_to_synonym
     id_to_synonym = prepare_synonyms(parse_ranked_ent_df(input_files['entity_count_files']))
@@ -212,7 +201,9 @@ def load_files(root_directory, merge_proteins, use_core_proteins):
     return raw_caseolap_scores, reactome_data, id_to_synonym
 
 
-def run_pathway_analysis(summary_table):
+def run_pathway_analysis(summary_table, cvds, 
+                        hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, G, root_pathway_familiar_relations,
+                        output_directory='.'):
     ### cvd subproteome protein lists ###
     print("### CVD Sub-proteomes ###")
     cvd_subproteome_unirefs = {}
@@ -224,7 +215,7 @@ def run_pathway_analysis(summary_table):
         #     proteins = convert_uniref_ids_to_proteins(unirefs,uniref_to_uniprot_list)
         print("%s: %d proteins" % (tag, len(proteins)))
 
-        cvd_subproteome_unirefs[cvd] = unirefs
+        #cvd_subproteome_unirefs[cvd] = unirefs
         cvd_subproteome_proteins[cvd] = proteins
 
     ### category i protein lists ###
@@ -245,14 +236,18 @@ def run_pathway_analysis(summary_table):
         #     proteins = convert_uniref_ids_to_proteins(unirefs,uniref_to_uniprot_list)
         print("%s: %d proteins" % (tag, len(proteins)))
 
-        category_ii_unirefs[cvd] = unirefs
+        #category_ii_unirefs[cvd] = unirefs
         category_ii_proteins[cvd] = proteins
-
+    
+    reactome_results_dir = os.path.join(output_directory,"reactome_results")
+    # make reactome result folder. TODO move to analyze_results function
+    if not os.path.exists(reactome_results_dir):
+        os.makedirs(reactome_results_dir)
     for cvd in cvds:
         proteins = cvd_subproteome_proteins[cvd]
 
         if len(proteins) > 0:
-            out_name = "./reactome_results/%s_subproteome_pathway_analysis_result.csv" % cvd
+            out_name = os.path.join(reactome_results_dir, "%s_subproteome_pathway_analysis_result.csv" % cvd)
             pwa_df = submit_reactome_pathway_analysis(proteins, out_file=out_name)
             num_pathways = pwa_df.shape[0]
             print("%d pathways identified. Saved to %s" % (num_pathways, out_name))
@@ -260,8 +255,9 @@ def run_pathway_analysis(summary_table):
             print("Insufficient number of proteins for %s" % cvd)
 
     # run pathway analysis for category i proteins
+    cat_i_outfile = os.path.join(reactome_results_dir,"category_i_proteins_pathway_analysis_result.csv")
     cat_i_pa_result_df = submit_reactome_pathway_analysis(category_i_proteins, debug=True,
-                                                          out_file="./reactome_results/category_i_proteins_pathway_analysis_result.csv")
+                                                          out_file=cat_i_outfile)
     cat_i_pa_result_df.head()
 
     category_ii_pa_df = {}
@@ -269,7 +265,7 @@ def run_pathway_analysis(summary_table):
         proteins = category_ii_proteins[cvd]
 
         if len(proteins) > 0:
-            out_name = "./reactome_results/%s_category_ii_pathway_analysis_result.csv" % cvd
+            out_name = os.path.join(reactome_results_dir,"%s_category_ii_pathway_analysis_result.csv" % cvd)
             pwa_df = submit_reactome_pathway_analysis(proteins, out_file=out_name)
             num_pathways = pwa_df.shape[0]
             print("%d pathways identified. Saved to %s" % (num_pathways, out_name))
@@ -282,10 +278,10 @@ def run_pathway_analysis(summary_table):
     # for proteins in uniref_to_uniprot_list.values():
     #     all_proteins = all_proteins.union(set(proteins))
     # print("%d unirefs and %d proteins"%(len(all_unirefs),len(all_proteins)))
-    all_proteins = set(raw_caseolap_scores['entity'])
+    all_proteins = set(summary_table.index)
     print("%d proteins" % (len(all_proteins)))
-
-    out_name = "./reactome_results/all_proteins_pathway_analysis_result.csv"
+    
+    out_name = os.path.join(reactome_results_dir,"all_proteins_pathway_analysis_result.csv")
     pwa_df = submit_reactome_pathway_analysis(all_proteins, out_file=out_name)
     num_pathways = pwa_df.shape[0]
     print("%d pathways identified. Saved to %s" % (num_pathways, out_name))
@@ -299,25 +295,22 @@ def run_pathway_analysis(summary_table):
         proteins = list(summary_table[summary_table[cvd] > 0].index)
         #     unirefs = list(summary_table[summary_table[cvd] > 0].index)
         #     proteins = convert_uniref_ids_to_proteins(unirefs,uniref_to_uniprot_list)
-        nonzero_cvd_uniref[cvd] = unirefs
+        #nonzero_cvd_uniref[cvd] = unirefs
         nonzero_cvd_proteins[cvd] = proteins
         print("%s: %d proteins" % (cvd, len(proteins)))
 
         # pathway analysis
         if len(proteins) > 0:
-            out_name = "./reactome_results/%s_nonzero_proteins_pathway_analysis_result.csv" % cvd
+            out_name = os.path.join(reactome_results_dir,"%s_nonzero_proteins_pathway_analysis_result.csv" % cvd)
             pwa_df = submit_reactome_pathway_analysis(proteins, out_file=out_name)
             num_pathways = pwa_df.shape[0]
             print("%d pathways identified. Saved to %s" % (num_pathways, out_name))
         else:
             print("Insufficient number of proteins for %s" % cvd)
 
-
-    load_reactome_data() #TODO
-
     # read all pathway analysis results into dataframes
 
-    pathway_analysis_directory = './reactome_results'
+    pathway_analysis_directory = reactome_results_dir #TODO fix
     title_to_df = {}
     for filename in os.listdir(pathway_analysis_directory):
         if filename.endswith(".csv"):
@@ -356,6 +349,9 @@ def run_pathway_analysis(summary_table):
     # uniprot_to_uniref = get_uniref_to_uniprot_list(prot_to_uniref_file, reverse_mapping=True)
     uniprot_to_uniprot = {p: p for p in all_proteins}
 
+    zscores_df = summary_table[cvds]
+
+
     # extract pathway to its set of corresponding CaseOLAP scores for each protein in that pathway
     # pathway_to_uniref_scores = extract_pathway_to_scores(pathways_in_heatmap, zscores_df,
     #                                                     all_union_pa_df, uniprot_to_uniref, debug=True)
@@ -368,7 +364,10 @@ def run_pathway_analysis(summary_table):
     z_data.index = [pathway_id_to_pathway_name[p] for p in z_data.index]
     z_data = z_data[cvds]
     # dend_data = linkage_matrix
-
+    linkage_matrix, dendrogram_order = construct_dendrogram(G,pathways_in_heatmap, labeling_function=root_pathway_familiar_relations)
+    heatmap_outfile = os.path.join(output_directory,"output/figures/CVD_Reactome_coverage_heatmap_no_dendrogram.pdf")
+    reordered_c_data = reorder_heatmap(c_data,dendrogram_order,pathway_id_to_pathway_name,reactome_pathway_to_unique_proteins)
+    reordered_z_data = reorder_heatmap(z_data,dendrogram_order,pathway_id_to_pathway_name,reactome_pathway_to_unique_proteins)
     make_heatmap(reordered_z_data, linkage_matrix, v_lim=(None, None))
 
 
@@ -390,6 +389,7 @@ def run_pathway_analysis(summary_table):
             pathway_names += [pathway_id_to_pathway_name[pp]]
         print(pathway_names)
 
+    pathway_unique_to_cvd_heatmap_outfile = os.path.join(output_directory,"output/figures/pathways_unique_to_cvd_heatmap.pdf")
     make_heatmap_unique_to_cvd(unique_to_cvd_pathway_list, zscores_df,
                                all_union_pa_df, uniprot_to_uniprot, cvds,
                                pathway_id_to_pathway_name, reactome_pathway_to_unique_proteins)
@@ -399,7 +399,8 @@ def run_pathway_analysis(summary_table):
     #                                              pathway_id_to_pathway_name, reactome_pathway_to_unique_proteins)
 
 
-def load_reactome_data(reactome_hierarchy_to_pathway,reactome_id_to_pathway_name,reactome_uniprot_to_pathway):
+def load_reactome_data(input_files):
+    reactome_uniprot_to_pathway, reactome_hierarchy_to_pathway, reactome_id_to_pathway_name = input_files
     # Load in the reactome hierarchial information for human. See function definition in first cell.
     hierarchical_relationships, unique_reactome_ids = \
         extract_human_hierarchical_information(reactome_hierarchy_to_pathway)
@@ -433,6 +434,8 @@ def load_reactome_data(reactome_hierarchy_to_pathway,reactome_id_to_pathway_name
                                                debug=False)
     pruned_G_root_pathways.name = 'Reactome hierarchical tree pruned with root pathway membership'
     print(nx.info(pruned_G_root_pathways))
+   
+    return hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, pruned_G_root_pathways,G,root_pathway_familiar_relations
 
 
 def generate_category_table(zscore_caseolap_file, merged, output_directory=".", z_score_threshold=3.0):
@@ -475,7 +478,8 @@ def generate_category_table(zscore_caseolap_file, merged, output_directory=".", 
     # prepare plot values above threshold line
     subproteome_plot_values = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in cvd_subproteome_to_scores.items()]))
 
-    cvd_proteomes_violin_plot(zscores_df, subproteome_plot_values, show_figure=False)
+    violin_plot_output_file = os.path.join(output_directory,"figures/caseolap_zscore_violin_plot.pdf")
+    cvd_proteomes_violin_plot(zscores_df, subproteome_plot_values, show_figure=False, out_file=violin_plot_output_file)
 
     # Category I: Protein groups with score > 0 for all CVDs
     summary_table['Category I'] = (summary_table.isnull().sum(axis=1) == 0)
@@ -489,7 +493,7 @@ def generate_category_table(zscore_caseolap_file, merged, output_directory=".", 
 
     # print("%d unique protein groups and %d proteins in Category I"%(len(category_i_unirefs), len(category_i_proteins)))
     print("%d proteins in Category I" % (len(category_i_proteins)))
-    cat_i_heatmap_outfile = os.path.join(output_directory,'Category_I_Heatmap.pdf')
+    cat_i_heatmap_outfile = os.path.join(output_directory,'figures/Category_I_Heatmap.pdf')
 
     make_category_i_heatmap(summary_table[summary_table['Category I'] == True][CVDs], sort_by='mean',
                             out_file = cat_i_heatmap_outfile)
@@ -524,7 +528,8 @@ def generate_category_table(zscore_caseolap_file, merged, output_directory=".", 
             num_true = summary_table[col_name].sum()
             print("%s\t%d" % (col_name, num_true))
 
-    make_category_ii_heatmap(summary_table)
+    category_ii_heatmap_outfile = os.path.join(output_directory,"figures/unique_unirefs_heatmap.pdf")
+    make_category_ii_heatmap(summary_table, out_file=category_ii_heatmap_outfile)
 
     combs = get_combinations(CVDs)
 
@@ -570,10 +575,9 @@ def generate_category_table(zscore_caseolap_file, merged, output_directory=".", 
     multi_index_categories = get_bool_table(list(upset_plot_dict.keys()), ordering=CVDs)
     # multi_index_categories
     data_series = pd.Series(data=upset_plot_dict.values(), index=multi_index_categories)
-    data_series
-
+#TODO make opplot output to table
     upplot(data_series)
-    plt.show()
+#    plt.show()
 
     summary_table['Synonyms'] = list(merged['Synonyms'])
     new_order = ['Synonyms'] + list(summary_table.columns[:-1])
@@ -583,7 +587,7 @@ def generate_category_table(zscore_caseolap_file, merged, output_directory=".", 
     # write table
     out_file = os.path.join(output_directory,"SupplementaryData2_Summary_Table.csv")
     summary_table.to_csv(out_file) #TODO
-
+    return summary_table
 
 def analyze_results(root_directory, z_score_thresh=3.0, merge_proteins=True, use_core_proteins=True, debug=True):
 
@@ -598,8 +602,7 @@ def analyze_results(root_directory, z_score_thresh=3.0, merge_proteins=True, use
     # error checking and load files
     raw_caseolap_scores, reactome_data, id_to_synonym = load_files(root_directory, merge_proteins, use_core_proteins)
     df =  raw_caseolap_scores
-    hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name = reactome_data
-
+    hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, G, root_pathway_familiar_relations = reactome_data
     # merge based on shared synonyms
     if merge_proteins:
 
@@ -647,7 +650,5 @@ def analyze_results(root_directory, z_score_thresh=3.0, merge_proteins=True, use
     zscore_table_outfile = os.path.join(output_directory,"merged_caseolap_zscores.csv")
     zscores_df.to_csv(zscore_table_outfile, index=True)
 
-    generate_category_table(zscore_table_outfile,merged,output_directory=output_directory,z_score_threshold=z_score_thresh)
-
-
-
+    summary_table = generate_category_table(zscore_table_outfile,merged,output_directory=output_directory,z_score_threshold=z_score_thresh)
+    run_pathway_analysis(summary_table,cvds, hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, G, root_pathway_familiar_relations, output_directory=output_directory)

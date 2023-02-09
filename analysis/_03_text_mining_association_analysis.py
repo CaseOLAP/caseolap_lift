@@ -645,13 +645,19 @@ def submit_reactome_pathway_analysis(protein_list, out_file='results.csv', debug
         'includeDisease': 'true',
     }
 
-    # prepare input data
-    data = "\n".join(protein_list)
+    # account for proteins separated by ';'
+    proteins = []
+    for p in protein_list:
+        if ";" in p:
+            proteins += p.split(";")
+        else:
+            proteins += [p]
 
+    # prepare input data
+    data = "\n".join(proteins)
     # post request
     response = requests.post('https://reactome.org/AnalysisService/identifiers/projection', 
                              params=params, headers=headers, data=data)
-    
     # extract token
     result_dict = json.loads(response.text)
     token = result_dict['summary']['token']
