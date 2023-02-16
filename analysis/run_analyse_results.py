@@ -192,8 +192,8 @@ def load_files(root_directory, merge_proteins, use_core_proteins):
     raw_caseolap_scores = pd.read_csv(input_files['caseolap_results'])
 
 
-    hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, pruned_G_root_pathways,G, root_pathway_familiar_relations = load_reactome_data(input_files['reactome_data'])
-    reactome_data = [hierarchical_relationships, unique_reactome_ids,reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name,pruned_G_root_pathways,root_pathway_familiar_relations]
+    hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, G = load_reactome_data(input_files['reactome_data'])
+    reactome_data = [hierarchical_relationships, unique_reactome_ids,reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name,G]
 
     # load id_to_synonym
     id_to_synonym = prepare_synonyms(parse_ranked_ent_df(input_files['entity_count_files']))
@@ -202,7 +202,7 @@ def load_files(root_directory, merge_proteins, use_core_proteins):
 
 
 def run_pathway_analysis(summary_table, cvds, 
-                        hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, G, root_pathway_familiar_relations,
+                        hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, my_G, root_pathway_familiar_relations,
                         output_directory='.'):
     ### cvd subproteome protein lists ###
     print("### CVD Sub-proteomes ###")
@@ -364,7 +364,7 @@ def run_pathway_analysis(summary_table, cvds,
     z_data.index = [pathway_id_to_pathway_name[p] for p in z_data.index]
     z_data = z_data[cvds]
     # dend_data = linkage_matrix
-    linkage_matrix, dendrogram_order = construct_dendrogram(G,pathways_in_heatmap, labeling_function=root_pathway_familiar_relations)
+    linkage_matrix, dendrogram_order =construct_dendrogram(my_G,pathways_in_heatmap, labeling_function=root_pathway_familiar_relations)
     heatmap_outfile = os.path.join(output_directory,"output/figures/CVD_Reactome_coverage_heatmap_no_dendrogram.pdf")
     reordered_c_data = reorder_heatmap(c_data,dendrogram_order,pathway_id_to_pathway_name,reactome_pathway_to_unique_proteins)
     reordered_z_data = reorder_heatmap(z_data,dendrogram_order,pathway_id_to_pathway_name,reactome_pathway_to_unique_proteins)
@@ -418,25 +418,25 @@ def load_reactome_data(input_files):
     G.add_edges_from(hierarchical_relationships)
     print(nx.info(G))
 
-    # Calculate the familiar relations of each node
-    # That is, label a node based on its membership as a descendent of a specific set of pathways (root and parent pathways)
-
-    root_nodes = [x for x in G.nodes() if G.out_degree(x) > 0 and G.in_degree(x) == 0]
-    print("Number of root nodes: " + str(len(root_nodes)))
-
-    print("### Root Pathway Descendants ###")
-    descendants = get_descendant_pathways(root_nodes, G)
-    root_pathway_familiar_relations = get_familiar_relations(descendants)
-
-    # Prune graph based on membership to root pathway
-    pruned_G_root_pathways = prune_extra_edges(G,
-                                               labeling_function=root_pathway_familiar_relations,
-                                               debug=False)
-    pruned_G_root_pathways.name = 'Reactome hierarchical tree pruned with root pathway membership'
-    print(nx.info(pruned_G_root_pathways))
-   
-    return hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, pruned_G_root_pathways,G,root_pathway_familiar_relations
-
+#    # Calculate the familiar relations of each node
+#    # That is, label a node based on its membership as a descendent of a specific set of pathways (root and parent pathways)
+#
+#    root_nodes = [x for x in G.nodes() if G.out_degree(x) > 0 and G.in_degree(x) == 0]
+#    print("Number of root nodes: " + str(len(root_nodes)))
+#
+#    print("### Root Pathway Descendants ###")
+#    descendants = get_descendant_pathways(root_nodes, G)
+#    root_pathway_familiar_relations = get_familiar_relations(descendants)
+#
+#    # Prune graph based on membership to root pathway
+#    pruned_G_root_pathways = prune_extra_edges(G,
+#                                               labeling_function=root_pathway_familiar_relations,
+#                                               debug=False)
+#    pruned_G_root_pathways.name = 'Reactome hierarchical tree pruned with root pathway membership'
+#    print(nx.info(pruned_G_root_pathways))
+#   
+#    return hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, pruned_G_root_pathways,G,root_pathway_familiar_relations
+    return hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, G
 
 def generate_category_table(zscore_caseolap_file, merged, output_directory=".", z_score_threshold=3.0):
 
@@ -602,7 +602,7 @@ def analyze_results(root_directory, z_score_thresh=3.0, merge_proteins=True, use
     # error checking and load files
     raw_caseolap_scores, reactome_data, id_to_synonym = load_files(root_directory, merge_proteins, use_core_proteins)
     df =  raw_caseolap_scores
-    hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, G, root_pathway_familiar_relations = reactome_data
+    hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, G = reactome_data
     # merge based on shared synonyms
     if merge_proteins:
 
@@ -650,5 +650,22 @@ def analyze_results(root_directory, z_score_thresh=3.0, merge_proteins=True, use
     zscore_table_outfile = os.path.join(output_directory,"merged_caseolap_zscores.csv")
     zscores_df.to_csv(zscore_table_outfile, index=True)
 
+
+    # Calculate the familiar relations of each node
+    # That is, label a node based on its membership as a descendent of a specific set of pathways (root and parent pathways)
+
+    root_nodes = [x for x in G.nodes() if G.out_degree(x) > 0 and G.in_degree(x) == 0]
+    print("Number of root nodes: " + str(len(root_nodes)))
+
+    print("### Root Pathway Descendants ###")
+    descendants = get_descendant_pathways(root_nodes, G)
+    root_pathway_familiar_relations = get_familiar_relations(descendants)
+
+    # Prune graph based on membership to root pathway
+    pruned_G_root_pathways = prune_extra_edges(G,
+                                               labeling_function=root_pathway_familiar_relations,
+                                               debug=False)
+    pruned_G_root_pathways.name = 'Reactome hierarchical tree pruned with root pathway membership'
+
     summary_table = generate_category_table(zscore_table_outfile,merged,output_directory=output_directory,z_score_threshold=z_score_thresh)
-    run_pathway_analysis(summary_table,cvds, hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, G, root_pathway_familiar_relations, output_directory=output_directory)
+    run_pathway_analysis(summary_table,cvds, hierarchical_relationships, unique_reactome_ids, reactome_pathway_to_unique_proteins, pathway_id_to_pathway_name, pruned_G_root_pathways, root_pathway_familiar_relations, output_directory=output_directory)
