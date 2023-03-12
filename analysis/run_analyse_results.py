@@ -498,7 +498,7 @@ def generate_category_table(zscore_caseolap_file, merged, output_directory=".", 
     make_category_i_heatmap(summary_table[summary_table['Category I'] == True][CVDs], sort_by='mean',
                             out_file = cat_i_heatmap_outfile)
 
-    zscore_cutoff_table(zscores_df)
+    zscore_cutoff_table(zscores_df) #TODO output under results as zscore_cutoff_table.csv
     print("z-score threshold used for this analysis: %f" % (z_score_threshold))
 
     # Category II: explaionaation here
