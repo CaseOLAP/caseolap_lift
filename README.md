@@ -33,6 +33,7 @@ MeSH Tree Data: mtrees2022.bin
 GRNdb/GTEx Transcription Factors: Files from GRNdb
 ```
 
+Run the preprocessing step:
 ```
 ‘python caseolap_lift.py preprocessing --help’. 
 ```
