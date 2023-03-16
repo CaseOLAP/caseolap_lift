@@ -11,22 +11,34 @@ This repository contains the code associated with the paper, “A knowledge grap
 
 ### Step 2: Preparing diseases and proteins
 Knowledge base data and their corresponding file names are shown below.
+```
 GO Ontologies: go-basic.obo
+
 GO to Proteins: goa_human.gaf
+
 UniProt Human Proteome: UP000005640_9606.fasta
+
 Proteins to Pathways (leaf node pathways in Reactome’s pathway hierarchy): UniProt2Reactome.txt
+
 Proteins to Pathways (all pathways): UniProt2Reactome_All_Levels.txt
+
 Pathways: ReactomePathwaysRelation.txt
+
 Pathway names: ReactomePathways.txt
+
 MeSH Term Data: desc2022.xml 
+
 MeSH Tree Data: mtrees2022.bin
+
 GRNdb/GTEx Transcription Factors: Files from GRNdb
+```
 
-
+```
 ‘python caseolap_lift.py preprocessing --help’. 
+```
 
 The following flags are required:
-
+```
 -d disease list: a list of MeSH tree numbers for your diseases of interest. Separate disease categories by spaces. Separate tree numbers of the same category by commas.
 
 -c cellular component: a list of space-separated GO terms representing cellular component(s), molecular function(s), and/or biological process(es).
@@ -53,4 +65,5 @@ The following flags are required:
 -o output_folder: directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps.
 
 -p parameter_file: will bypass all options and run based on parameters.txt or parameters.json file.
+```
 
