@@ -36,48 +36,38 @@ The preprocessing step of this pipeline assembles specific diseases, list protei
 ```
 
 Biomedical data are downloaded from knowledge bases online. The corresponding file names are shown below.
-```
-GO Ontologies: go-basic.obo
 
-GO to Proteins: goa_human.gaf
 
-UniProt Human Proteome: UP000005640_9606.fasta
+- GO Ontologies: go-basic.obo
+- GO to Proteins: goa_human.gaf
+- UniProt Human Proteome: UP000005640_9606.fasta
+- Proteins to Pathways (leaf node pathways in Reactome’s pathway hierarchy): UniProt2Reactome.txt
+- Proteins to Pathways (all pathways): UniProt2Reactome_All_Levels.txt
+- Pathways: ReactomePathwaysRelation.txt
+- Pathway names: ReactomePathways.txt
+- MeSH Term Data: desc2022.xml 
+- MeSH Tree Data: mtrees2022.bin
+- GRNdb/GTEx Transcription Factors: Files from GRNdb
 
-Proteins to Pathways (leaf node pathways in Reactome’s pathway hierarchy): UniProt2Reactome.txt
-
-Proteins to Pathways (all pathways): UniProt2Reactome_All_Levels.txt
-
-Pathways: ReactomePathwaysRelation.txt
-
-Pathway names: ReactomePathways.txt
-
-MeSH Term Data: desc2022.xml 
-
-MeSH Tree Data: mtrees2022.bin
-
-GRNdb/GTEx Transcription Factors: Files from GRNdb
-```
 
 
 The following flags are required:
-```
--d disease list: a list of MeSH tree numbers for your diseases of interest. Separate disease categories by spaces. Separate tree numbers of the same category by commas.
--c cellular component: a list of space-separated GO terms representing cellular component(s), molecular function(s), and/or biological process(es).
-```
+- -d disease list: a list of MeSH tree numbers for your diseases of interest. Separate disease categories by spaces. Separate tree numbers of the same category by commas.
+- -c cellular component: a list of space-separated GO terms representing cellular component(s), molecular function(s), and/or biological process(es).
+
 The following flags are optional:
-```
--a disease abbreviations: User-named abbreviations for disease categories of interest. Must match the number of disease categories passed in.
--l protein list: list of additional proteins to include in this analysis. Only UniProtKB IDs are accepted; unmapped IDs will be discarded. A list of proteins may be provided in place of GO term.
---include-ppi: Flag indicates proteins with known protein-protein interaction via STRING will be added to functionally related proteins.
--k ppi_k: indicates how many hops of protein-protein interactions to include. (e.g. k = 2 will include neighbors of neighbors) Default: 1.
--s ppi_score_thresh: only protein-protein interactions with a score greater than this threshold will be included.
---include-pw: Flag indicates proteins which share significant biological pathways via Reactome to be added to functionally related proteins.
--n pathway_count_thresh: minimum number of cellular component proteins required to consider a pathway as significant. Default: 4.
--r pathway_prop_thresh: minimum proportion of cellular component proteins required to consider a pathway as significant. Default: 0.5.
---include-tfd: Flag indicates that proteins related via transcription factor from GRNdb will be added to the functionally related proteins.
--o output_folder: directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps.
--p parameter_file: will bypass all options and run based on parameters.txt or parameters.json file.
-```
+
+-  a disease abbreviations: User-named abbreviations for disease categories of interest. Must match the number of disease categories passed in.
+- -l protein list: list of additional proteins to include in this analysis. Only UniProtKB IDs are accepted; unmapped IDs will be discarded. A list of proteins may be provided in place of GO term.
+- --include-ppi: Flag indicates proteins with known protein-protein interaction via STRING will be added to functionally related proteins.
+- -k ppi_k: indicates how many hops of protein-protein interactions to include. (e.g. k = 2 will include neighbors of neighbors) Default: 1.
+- -s ppi_score_thresh: only protein-protein interactions with a score greater than this threshold will be included.
+- --include-pw: Flag indicates proteins which share significant biological pathways via Reactome to be added to functionally related proteins.
+- -n pathway_count_thresh: minimum number of cellular component proteins required to consider a pathway as significant. Default: 4.
+- -r pathway_prop_thresh: minimum proportion of cellular component proteins required to consider a pathway as significant. Default: 0.5.
+- --include-tfd: Flag indicates that proteins related via transcription factor from GRNdb will be added to the functionally related proteins.
+- -o output_folder: directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps.
+- -p parameter_file: will bypass all options and run based on parameters.txt or parameters.json file.
 	
 Example command:
 ```	
@@ -88,15 +78,15 @@ python caseolap_lift preprocessing -a
 Run the text-mining module of CaseOLAP LIFT using command-line options. Document download, parsing, and indexing are handled end-to-end. Detailed troubleshooting steps for a previous yet similar version of this step are described in CaseOLAP’s protocol (https://www.jove.com/v/59108/cloud-based-phrase-mining-analysis-user-defined-phrase-category)
 
 A list of command-line flags can be found by typing the command ‘python caseolap_lift.py text_mining --help’. The following flags are optional:
-```
--d date_start date_end: Specify the date range for PubMed documents which will be downloaded. Provide both dates in YYYY-MM-DD format, separated by comma. By default, all available publications will be downloaded.
--l include label-imputation: A flag indicating the software to use label-imputation during text-mining. Default: False. NOTE: Most labels are correct (87% precision), but most relevant unlabeled documents are left unlabeled (2% recall).
--t include full-text: A flag indicating the software to include full-text documents during text-mining. Default: False.
--c check_synonyms: A flag indicating the software to halt function to screen ambiguous protein names. Details described in the following section. 
--r rerun_scoring: A flag indicating the software to re-run CaseOLAP score calculation after updating synonym list.
--o output_folder: directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps.
--p parameter_file: will bypass all options and run based on parameters.txt or parameters.json file.
-```
+
+- -d date_start date_end: Specify the date range for PubMed documents which will be downloaded. Provide both dates in YYYY-MM-DD format, separated by comma. By default, all available publications will be downloaded.
+- -l include label-imputation: A flag indicating the software to use label-imputation during text-mining. Default: False. NOTE: Most labels are correct (87% precision), but most relevant unlabeled documents are left unlabeled (2% recall).
+- -t include full-text: A flag indicating the software to include full-text documents during text-mining. Default: False.
+- -c check_synonyms: A flag indicating the software to halt function to screen ambiguous protein names. Details described in the following section. 
+- -r rerun_scoring: A flag indicating the software to re-run CaseOLAP score calculation after updating synonym list.
+- -o output_folder: directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps.
+- -p parameter_file: will bypass all options and run based on parameters.txt or parameters.json file.
+
 	
 Example command:
 ```	
@@ -107,13 +97,13 @@ python caseolap_lift text_mining -d "2012-10-01,2022-10-01" -l -t
 Run the analysis module of CaseOLAP LIFT using command-line options. This step identify diseases’ top proteins and pathways and generates figures supporting the manuscript.
 
 Type ‘python caseolap_lift.py analysis --help’ to find command line flags. The following flags are optional:
-```
--z z_score_thresh: the threshold for considering if a protein’s disease-specific score is significant. Default: 3.0.
---analyze_core_proteins: analyze only core proteins (i.e., GO term-related proteins). Default: False.
---analyze_all_proteins: analyze core proteins and their functionally related proteins. Default: True.
--o output_folder: directory storing all data and results. Use the same output folder for all steps, as future steps rely on previous steps’ output files.
--p parameter_file: bypass all options and run based on parameters.txt or parameters.json file.
-```
+
+- -z z_score_thresh: the threshold for considering if a protein’s disease-specific score is significant. Default: 3.0.
+- --analyze_core_proteins: analyze only core proteins (i.e., GO term-related proteins). Default: False.
+- --analyze_all_proteins: analyze core proteins and their functionally related proteins. Default: True.
+- -o output_folder: directory storing all data and results. Use the same output folder for all steps, as future steps rely on previous steps’ output files.
+- -p parameter_file: bypass all options and run based on parameters.txt or parameters.json file.
+
 	
 Example command:
 ```	
@@ -126,18 +116,18 @@ python caseolap_lift analyze_results -z 3.0 --analyze_core_proteins
 A knowledge graph is constructed from the results from text-mining and contextualized among other functionally related biomedical entities. 
 
 Type ‘python caseolap_lift.py prepare_knowledge_graph --help’ to find command line flags. The following flags are optional:
-```
---include_tfd: include edges between proteins based on transcription factor dependence. Default: True.
---include_ppi: include edges between proteins based on interactions. Default: True.
---include_pw: include edges between proteins and Reactome pathways (pathway nodes are otherwise excluded). Default: True.
---include_mesh: include MeSH disease hierarchy edges. Default: True.
---use_z_score: Use z-score transformed scores as edge weights. By default, original CaseOLAP scores will be used.
---scale_z_score: Make z-scores non-negative edge weights. 
---include_all_proteins: include functionally related proteins. Default: True.
---include_core_proteins: only include core proteins. Default: False.
--o output_folder: directory storing all data and results. Use the same output folder for all steps, as future steps rely on previous steps’ output files.
--p parameter_file: bypass all options and run based on parameters.txt or parameters.json file.
-```
+
+- --include_tfd: include edges between proteins based on transcription factor dependence. Default: True.
+- --include_ppi: include edges between proteins based on interactions. Default: True.
+- --include_pw: include edges between proteins and Reactome pathways (pathway nodes are otherwise excluded). Default: True.
+- --include_mesh: include MeSH disease hierarchy edges. Default: True.
+- --use_z_score: Use z-score transformed scores as edge weights. By default, original CaseOLAP scores will be used.
+- --scale_z_score: Make z-scores non-negative edge weights. 
+- --include_all_proteins: include functionally related proteins. Default: True.
+- --include_core_proteins: only include core proteins. Default: False.
+- -o output_folder: directory storing all data and results. Use the same output folder for all steps, as future steps rely on previous steps’ output files.
+- -p parameter_file: bypass all options and run based on parameters.txt or parameters.json file.
+
 	
 Example command:
 ```	
