@@ -4,11 +4,11 @@ from grape import Graph
 from kg_analysis.kg_analysis import get_edge_type_to_node_types_mapping, independent_edge_evaluation,add_predictions_to_kg
 
 examine_core_proteins_only = True
-
-core_proteins_file = '../output/core_proteins.txt'
-node_path = '../output/graph_data/merged_node_list.tsv'
-edge_path = '../output/graph_data/merged_edge_list.tsv'
-output_folder = '../output/kg_analysis'
+root_directory = '/caseolap_lift_shared_folder'
+core_proteins_file = os.path.join(root_directory,'output/core_proteins.txt')
+node_path = os.path.join(root_directory,'result/graph_data/merged_node_list.tsv')
+edge_path = os.path.join(root_directory,'result/graph_data/merged_edge_list.tsv')
+output_folder = os.path.join(root_directory,'result/kg_analysis')
 eval_output = os.path.join(output_folder,'eval_results.csv')
 predictions_output = os.path.join(output_folder,'predictions.csv')
 
@@ -53,15 +53,15 @@ print("Number of predicted edges: %f"%filtered_pred_df.shape[0])
 print("Number of unique proteins w/ predictions: %f"%len(set(filtered_pred_df['destinations'])))
 
 ## we were missing some protein-pathway relationships. Adding them now #TODO move this to kg creation
-input_edges = pd.read_csv(edge_path, sep="\t")
-added_pw_relations = pd.read_csv('../scratch/added_pathway_relations.csv')
-added_pw_relations['weight'] = 1.0
-merged_input_edges = input_edges.merge(added_pw_relations,on=['head','tail'],how='outer',indicator=True)
-missing_pw_df = merged_input_edges[merged_input_edges['_merge']== 'right_only']
-rels_to_add = missing_pw_df[['head','relation_y','tail','weight_y']]
-rels_to_add.columns = ['head','relation','tail','weight']
-input_edges = pd.concat([input_edges, rels_to_add])
+#input_edges = pd.read_csv(edge_path, sep="\t")
+#added_pw_relations = pd.read_csv('../scratch/added_pathway_relations.csv')
+#added_pw_relations['weight'] = 1.0
+#merged_input_edges = input_edges.merge(added_pw_relations,on=['head','tail'],how='outer',indicator=True)
+#missing_pw_df = merged_input_edges[merged_input_edges['_merge']== 'right_only']
+#rels_to_add = missing_pw_df[['head','relation_y','tail','weight_y']]
+#rels_to_add.columns = ['head','relation','tail','weight']
+#input_edges = pd.concat([input_edges, rels_to_add])
 
-filtered_pred_df = pd.read_csv(predictions_output)
-print(filtered_pred_df.shape)
-add_predictions_to_kg(input_edges,filtered_pred_df, output_folder=output_folder,debug=True)
+#filtered_pred_df = pd.read_csv(predictions_output)
+#print(filtered_pred_df.shape)
+#add_predictions_to_kg(input_edges,filtered_pred_df, output_folder=output_folder,debug=True)

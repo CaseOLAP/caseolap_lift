@@ -412,7 +412,14 @@ def prepare_kg(args):
         param_file_name = args.parameters
         parameters = parse_analyze_results(param_file_name)
     else:
-        caseolap_score_type = args.caseolap_scores
+    #    caseolap_score_type = args.caseolap_scores
+        caseolap_score_type = 'raw'
+        if args.use_z_score:
+            caseolap_score_type = 'z_score'
+        elif args.scale_z_score:
+            caseolap_score_type = 'scaled_z_score'
+    #prepare_knowledge_graph.add_argument('--caseolap_scores', default='z_score', choices=['raw','z_score','scaled_z_score'],
+        
         include_all_proteins = args.include_all_proteins
         include_mesh = getattr(args, 'include-mesh')
         include_ppi = getattr(args, 'include-ppi')
@@ -431,7 +438,7 @@ def prepare_kg(args):
     # prepare data folders
     data_folder = os.path.join(output_folder, 'data')
     mapping_folder = os.path.join(output_folder, 'parsed_mappings')
-    analysis_output_folder = os.path.join(output_folder, 'output')
+    analysis_output_folder = os.path.join(output_folder, 'result')
 
     # save parameters as json in output folder
     save_parameters(analysis_output_folder, parameters, debug=True)
@@ -814,11 +821,16 @@ def args_parser():
                  help='Indicating the software to include Reactome pathway nodes and edges between proteins and pathways')
     add_bool_arg(prepare_knowledge_graph, 'include-mesh', default=True,
                  help='Indicating the software to include the MeSH disease hierarchy')
+    add_bool_arg(prepare_knowledge_graph, 'use_z_score', default=False,
+                 help='Indicating the software to include z-score scale CaseOLAP scores')
+    add_bool_arg(prepare_knowledge_graph, 'scale_z_score', default=True,
+                 help='Indicating the software to scale the z-score transformed CaseOLAP scores')
     # which caseolap scores to include
-    prepare_knowledge_graph.add_argument('--caseolap_scores', default='z_score', choices=['raw','z_score','scaled_z_score'],
-                                         help='Specifies which CaseOLAP scores to include in the knowledge graph. Raw scores (between 0.0 and 1.0), z-score per disease category (mean 0), or positive scaled z-scores (all scores > 0.0)')
+    #prepare_knowledge_graph.add_argument('--caseolap_scores', default='z_score', choices=['raw','z_score','scaled_z_score'],
+    #                                     help='Specifies which CaseOLAP scores to include in the knowledge graph. Raw scores (between 0.0 and 1.0), z-score per disease category (mean 0), or positive scaled z-scores (all scores > 0.0)')
     # mutual exclusive group on include_all_proteins
     kg_protein_group = prepare_knowledge_graph.add_mutually_exclusive_group(required=False)
+
     kg_protein_group.add_argument('--include_all_proteins', dest='include_all_proteins', action='store_true',
                                        help='Analyze CaseOLAP results from all functionally related proteins. Default: False')
     kg_protein_group.add_argument('--include_core_proteins', dest='include_all_proteins', action='store_false',

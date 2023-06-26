@@ -63,14 +63,14 @@ class caseolapLIFT_knowledge_graph:
         #mesh (downloaded from irsyad-setup.py)
         mesh_tree_file = os.path.join(root_directory, "data/MeSH/mtrees2022.bin")
         # categories_file = os.path.join(root_directory,"caseolap/input/categories.txt")
-        categories_file = os.path.join(root_directory, "scratch/categories.txt")
+        categories_file = os.path.join(root_directory, "data/categories.txt")
 
         mesh_tree_to_mesh_id_file = os.path.join(root_directory, "parsed_mappings/MeSH/edges_meshtree-IS-meshid_disease.csv")
         edges_meshtree2meshtree_hierarchy = os.path.join(root_directory, "parsed_mappings/MeSH/edges_meshtree_to_meshtree.csv")
 
         #caseolap
         # caseolap_csv = os.path.join(root_directory,"caseolap/result/all_proteins/all_caseolap.csv")
-        caseolap_csv = os.path.join(root_directory, 'scratch/result/all_proteins/all_caseolap.csv')
+        caseolap_csv = os.path.join(root_directory, 'output/all_proteins/all_caseolap.csv')
 
         #reactome
         protein2pathway = os.path.join(root_directory, "output/kg/reactome_edges.csv")
@@ -79,7 +79,7 @@ class caseolapLIFT_knowledge_graph:
         reactome_hierarchy = os.path.join(root_directory, "data/Reactome/ReactomePathwaysRelation.txt")
 
         #string ppi
-        string_edge = os.path.join(root_directory, "output/kg/string_ppi.csv")
+        string_edge = os.path.join(root_directory, "output/string_ppi.csv")
 
         #transcription factor dependence
         tf_edge = os.path.join(root_directory, "output/kg/target_protein_id_2_tf_protein_id.json")
