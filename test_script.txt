@@ -1,0 +1,4 @@
+python caseolap_lift.py preprocessing -a "CM ARR CHD VD IHD CCD VOO OTH" -d "C14.280.238,C14.280.434 C14.280.067 C14.280.400 C14.280.484 C14.280.647 C14.280.123 C14.280.955 C14.280.195,C14.280.282,C14.280.383,C14.280.470,C14.280.945,C14.280.459,C14.280.720" -c "GO:0005739" --include-ppi --include-pw --include-tfd
+python caseolap_lift.py analyze_results -o /caseolap_lift_shared_folder/
+python caseolap_lift.py text_mining -d 2012-10-01,2022-10-01 -l -t -o /caseolap_lift_shared_folder
+python caseolap_lift.py prepare_knowledge_graph
