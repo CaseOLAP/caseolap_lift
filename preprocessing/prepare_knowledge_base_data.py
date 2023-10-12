@@ -12,7 +12,7 @@ from utils.biomed_apis import *
 from utils.other_functions import *
 
 
-def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml", output_folder="../parsed_mappings/MeSH/"):
+def process_mesh_mapping(mesh_tree_file="../data/desc2023.xml", output_folder="../parsed_mappings/MeSH/"):
     '''
     This function parses the mesh tree file and parses three major files:
     1) ../data/edges_meshtree_to_meshtree.csv the hierarchical structure of mesh tree
@@ -113,7 +113,7 @@ def process_mesh_mapping(mesh_tree_file="../data/desc2022.xml", output_folder=".
         for entry in r['terms']:
             id2synonyms.setdefault(mesh_id, set()).add(entry['label'])
 
-        print(index, '/', total_trees, end='\r')
+        print("MeSH IDs parsed: ",index, '/', total_trees, end='\r')
 
     # MeSH Tree Number -[is]- MeSH ID
     output_edgefile_onerel_noweight(outpath=os.path.join(output_folder,'edges_meshtree-IS-meshid_disease.csv'),
@@ -303,7 +303,13 @@ def download_data(resource_to_data_file_bool, data_folder, file_to_link_file):
             if not exists:
                 resource_folder = os.path.join(data_folder,resource)
                 data_file_path = os.path.join(resource_folder,data_file)
-                
+    
+                # create data and resource folder if not exists
+                if not os.path.exists(data_folder):
+                    os.makedirs(data_folder)
+                if not os.path.exists(resource_folder):
+                    os.makedirs(resource_folder)
+
                 print("Downloading %s"%(data_file_path))
                 # GRNdb handled separately, a list of files
                 if data_file == 'GRNdb':
@@ -441,7 +447,7 @@ def curl_uniprot_api(ids, from_id, to_id, jobfile):
         # API
         command = 'curl --form "from=%s" --form "to=%s" --form "ids=%s" "https://rest.uniprot.org/idmapping/run" >> %s' % (
             from_id,to_id,ids_job, jobfile)
-        print(command)
+        #print(command)
         os.system(command)
         if i != tot_reqs - 1:
             # temp for splitting the lines, quick windows/linux patch
@@ -453,14 +459,16 @@ def curl_uniprot_api(ids, from_id, to_id, jobfile):
 
     ''' Get results of job '''
     results = dict()
+    count=0
     with open(jobfile) as fin:
         for line in fin:
             job_id = json.loads(line)['jobId']
             results[job_id] = dict()
+            print("Job %d of %d. Job ID:%s"%(count, tot_reqs, job_id))
             if check_id_mapping_results_ready_uniprot_api(job_id):
                 link = get_id_mapping_results_link_uniprot_api(job_id)
                 results[job_id] = get_id_mapping_results_search_uniprot_api(link)
-
+            count+=1
     return results
 
 
@@ -604,7 +612,7 @@ def prepare_tfd_mappings(input_folder = '../data/Transcription_Factor_Dependence
     grndb_folder = os.path.join(input_folder,'GRNdb')
     fasta_file = os.path.join(input_folder,'UP000005640_9606.fasta')
     # check they exist or exit
-
+    
     # read GRNdb folder
     tf_gene_name_2_target_gene_name = dict()  # TF gene name to target gene name
     gene_names = set()  # Gene Names (Tfs and targets)
@@ -709,7 +717,7 @@ def parse_downloaded_data(resource_to_processed_file_bool, mapping_folder, data_
                     print("Parsing MeSH mappings")
                 input_folder = os.path.join(data_folder,'MeSH')
                 output_folder = os.path.join(mapping_folder,'MeSH')
-                mesh_tree_file = os.path.join(input_folder,'desc2022.xml')
+                mesh_tree_file = os.path.join(input_folder,'desc2023.xml')
                 process_mesh_mapping(mesh_tree_file=mesh_tree_file, output_folder=output_folder)
 
             if resource == 'Reactome':
@@ -773,8 +781,13 @@ def prepare_knowledge_base_data(data_folder, mapping_folder, file_to_link_file,
     :param redownload:
     :return:
     '''
+    # make folders if doesn't exist
+    if not os.path.exists(data_folder):
+        os.makedirs(data_folder)
+    if not os.path.exists(mapping_folder):
+        os.makedirs(mapping_folder)
 
-    required_files = {'MeSH': ['desc2022.xml', 'mtrees2022.bin'], #TODO MeSH dates should be generalized
+    required_files = {'MeSH': ['desc2023.xml', 'mtrees2023.bin'], #TODO MeSH dates should be generalized
                       'GO': ['go-basic.obo', 'goa_human.gaf'],
                       'Reactome': ['UniProt2Reactome.txt', 'ReactomePathwaysRelation.txt','UniProt2Reactome_All_Levels.txt', 'ReactomePathways.txt'],
                       'Transcription_Factor_Dependence': ['GRNdb','UP000005640_9606.fasta']

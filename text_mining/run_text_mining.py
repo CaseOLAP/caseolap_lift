@@ -102,12 +102,13 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
 
     # Output 07
     case_varied_entites_outpath = os.path.join(data_folder,'casesensitive_entities.txt') # Case sensitive entity dict
+    #case_varied_entity_dict_path = os.path.join(input_dir,'id2syns.json') # entity dict
     case_varied_entity_dict_path = os.path.join(input_dir,'id2syns.json') # entity dict
     core_id2syns=os.path.join(input_dir,'core_id2syns.json')
     core_proteins_file=os.path.join(root_dir,'output/core_proteins.txt')
 
     # Input 08
-    entity_dict_path = case_varied_entity_dict_path
+    entity_dict_path = entity_dict_path_no_cs
     #entity_dict_path = 'input/id2syns.json'
     textcube_pmid2category = os.path.join(data_folder,'textcube_pmid2category.json')
     if date_range != None:
@@ -221,54 +222,54 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
         if not isExist:
             # Create a new directory because it does not exist
             os.makedirs(dir)
-#    print("01_run_download")
-#    text_mining_01_run_download(data_folder, logFilePath, download_config_file_path, ftp_config_file_path,
-#                               baseline_dir,update_files_dir)
-#
-#    print("02_run_parsing")
-#    text_mining_02_run_parsing(baseline_dir, update_files_dir,
-#                              parsing_config_file, pubmed_path, filestat_path,
-#                              logfile_path)
-#
-#    print("03_run_mesh2pmid")
-#    text_mining_03_run_mesh2pmid(pubmed_path,
-#                                mesh2pmid_outputfile, mesh2pmid_statfile, logFilePath)
-#    print("04_run_index_init")
-#    text_mining_04_run_index_init(index_name, type_name, index_init_config_file,
-#                                 number_shards=1, number_replicas=0, case_sensitive=True)
-#    print("05_run_index_populate")
-#    text_mining_05_run_index_populate(pubmed_path, index_populate_config_file,
-#                                  logfile_path, index_name, type_name)
-#    print("06_run_textcube")
-#    text_mining_06_run_textcube(textcube_category2pmid, meshtree, mesh2pmid, root_cat,
-#                               textcube_config, textcube_pmid2category,
-#                               textcube_stat, MeSHterms_percat,
-#                               logfile_path)
-#    print("07_run_vary_synonyms_cases")
-#    text_mining_07_run_vary_synonyms_cases(entity_dict_path_no_cs, species,
-#                                          case_varied_entites_outpath,
-#                                          case_varied_entity_dict_path,
-#                                          core_proteins_file,
-#                                          core_id2syns)
-#    print("08_run_count_synonyms")
-#    text_mining_08_run_count_synonyms(entity_dict_path, textcube_pmid2category,
-#                                  start_year, end_year, syn_pmid_count, pmid_syn_count_out,
-#                                  synfound_pmid2cat, logfile, index_name, key)
-#    print("09_run_screen_synonyms")
-#    text_mining_09_run_screen_synonyms(data_folder, id2syns, eng_path, short_path, rem_path)
+    print("01_run_download")
+    text_mining_01_run_download(data_folder, logFilePath, download_config_file_path, ftp_config_file_path,
+                               baseline_dir,update_files_dir)
 
-#   print("10_run_make_entity_counts")
-#    text_mining_10_run_make_entity_counts(remove_syns_infile, all_id2syns_path, core_id2syns_path, pmid_syn_count_in,
-#                                        all_entitycount_outfile, core_entitycount_outfile)
-#    print("11_run_metadata_update")
-#    text_mining_11_run_metadata_update(all_entitycount_path, core_entitycount_path, pmid2category_path,
-#                                      category_names_file, all_outfile_pmid2entity2count,
-#                                      core_outfile_pmid2entity2count, all_cat2pmids_path, core_cat2pmids_path,
-#                                      all_logfile_path, core_logfile_path)
-#    print("12_run_caseolap_score")
-#    text_mining_12_run_caseolap_score(all_cat2pmids_path, core_cat2pmids_path, all_pmid2entity2count_path,
-#                                      core_pmid2entity2count_path, category_names_path, all_logFilePath,
-#                                      core_logFilePath, all_caseolap_name, core_caseolap_name, analysis_output_folder)
+    print("02_run_parsing")
+    text_mining_02_run_parsing(baseline_dir, update_files_dir,
+                              parsing_config_file, pubmed_path, filestat_path,
+                              logfile_path)
+
+    print("03_run_mesh2pmid")
+    text_mining_03_run_mesh2pmid(pubmed_path,
+                                mesh2pmid_outputfile, mesh2pmid_statfile, logFilePath)
+    print("04_run_index_init")
+    text_mining_04_run_index_init(index_name, type_name, index_init_config_file,
+                                 number_shards=1, number_replicas=0, case_sensitive=True)
+    print("05_run_index_populate")
+    text_mining_05_run_index_populate(pubmed_path, index_populate_config_file,
+                                  logfile_path, index_name, type_name)
+    print("06_run_textcube")
+    text_mining_06_run_textcube(textcube_category2pmid, meshtree, mesh2pmid, root_cat,
+                               textcube_config, textcube_pmid2category,
+                               textcube_stat, MeSHterms_percat,
+                               logfile_path)
+    print("07_run_vary_synonyms_cases")
+    text_mining_07_run_vary_synonyms_cases(entity_dict_path_no_cs, species,
+                                          case_varied_entites_outpath,
+                                          case_varied_entity_dict_path,
+                                          core_proteins_file,
+                                          core_id2syns)
+    print("08_run_count_synonyms")
+    text_mining_08_run_count_synonyms(entity_dict_path, textcube_pmid2category,
+                                  start_year, end_year, syn_pmid_count, pmid_syn_count_out,
+                                  synfound_pmid2cat, logfile, index_name, key)
+    print("09_run_screen_synonyms")
+    text_mining_09_run_screen_synonyms(data_folder, id2syns, eng_path, short_path, rem_path)
+
+    print("10_run_make_entity_counts")
+    text_mining_10_run_make_entity_counts(remove_syns_infile, all_id2syns_path, core_id2syns_path, pmid_syn_count_in,
+                                        all_entitycount_outfile, core_entitycount_outfile)
+    print("11_run_metadata_update")
+    text_mining_11_run_metadata_update(all_entitycount_path, core_entitycount_path, pmid2category_path,
+                                      category_names_file, all_outfile_pmid2entity2count,
+                                      core_outfile_pmid2entity2count, all_cat2pmids_path, core_cat2pmids_path,
+                                      all_logfile_path, core_logfile_path)
+    print("12_run_caseolap_score")
+    text_mining_12_run_caseolap_score(all_cat2pmids_path, core_cat2pmids_path, all_pmid2entity2count_path,
+                                      core_pmid2entity2count_path, category_names_path, all_logFilePath,
+                                      core_logFilePath, all_caseolap_name, core_caseolap_name, analysis_output_folder)
 
     print("13_run_inspect_entity_scores")
     text_mining_13_run_inspect_entity_scores(id2syns_in, pmid_syn_count_in, remove_syns_in, all_caseolap_scores_in,
@@ -783,7 +784,6 @@ def text_mining_13_run_inspect_entity_scores(id2syns_in, pmid_syn_count_in, remo
     # Initialize the class
     IES = InspectEntityScores(core_caseolap_scores_in, id2syns_in, remove_syns_in, \
                               pmid_syn_count_in, core_cat2pmids_in)
-    print("asdfasdf")
     print(core_cat2pmids_in, pmid_syn_count_in, core_ranked_syns_out)
     '''ranked_synonyms'''
     # Export the ranked synonyms

@@ -6,6 +6,7 @@ import requests
 from pathlib import Path
 from preprocessing.prepare_knowledge_base_data import  download_data,prepare_knowledge_base_data
 import json
+import shutil
 from preprocessing.entity_set_expansion import prepare_subcellular_compartment_proteins
 from text_mining import *
 from analysis.run_analyse_results import analyze_results
@@ -127,17 +128,17 @@ def load_mesh_terms(output_folder,file_to_link_file,debug=False):
 
     if debug:
         print("Importing list of valid MeSH terms")
-
-    # Check if mtrees file exists, otherwise download
     data_folder = os.path.join(output_folder,"data")
-    input_file = os.path.join(data_folder, 'MeSH/mtrees2021.bin')
+    
+    # Check if mtrees file exists, otherwise download
+    input_file = os.path.join(data_folder, 'MeSH/mtrees2023.bin') # TODO do not hard code
     file_exists = check_file((input_file))
     if not file_exists:
         if not os.path.exists(data_folder):
             os.makedirs(data_folder)
         if not os.path.exists(os.path.join(data_folder,'MeSH')):
             os.makedirs(os.path.join(data_folder,'MeSH'))
-        ret = download_data({'MeSH':{'mtrees2021.bin':False}}, data_folder, file_to_link_file)
+        ret = download_data({'MeSH':{'mtrees2023.bin':False}}, data_folder, file_to_link_file)
 
     # parse list of valid mesh terms
     valid_mesh_terms = set([l.strip("\n").split(";")[1] for l in open(input_file,"r").readlines()])
@@ -167,11 +168,30 @@ def load_go_terms(output_folder, file_to_link_file, debug=False):
 
 
 def save_parameters(output_folder, parameters,debug=False):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
     output_file = os.path.join(output_folder,"parameters.json")
     json.dump(parameters, open(output_file, 'w'))
     if debug:
         print("Saved parameters as %s"%output_file)
 
+
+def copy_folder(input_folder, output_folder):
+
+    # create the output folder if it doesn't exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # copy all items in input folder
+    for item in os.listdir(input_folder):
+        item_path = os.path.join(input_folder, item)
+        # copy if it is a file
+        if os.path.isfile(item_path):
+            shutil.copy(item_path,output_folder)
+        # recursive copy if subfolder
+        elif os.path.isdir(item_path):
+            subfolder_output = os.path.join(output_folder, item)
+            copy_folder(item_path, subfolder_output)
 
 def preprocessing(args, debug=False):
 
@@ -185,6 +205,14 @@ def preprocessing(args, debug=False):
     analysis_output_folder = os.path.join(output_folder,'output')
     config_folder = os.path.join(output_folder,'config')
     file_to_link_file = os.path.join(config_folder,'knowledge_base_links.json')
+    # make directories if not exist
+    for d in [data_folder, mapping_folder, analysis_output_folder]:
+        if not os.path.exists(d):
+            os.makedirs(d)
+    if not os.path.exists(config_folder):
+        original_config = '/workspace/caseolap_lift/config'
+        copy_folder(original_config, config_folder)
+
 
     # import list of valid mesh and go terms to check user input against
     valid_mesh_terms = load_mesh_terms(output_folder,file_to_link_file, debug=debug)
@@ -225,6 +253,10 @@ def preprocessing(args, debug=False):
         pathway_prop_thresh = args.pathway_prop_thresh
         include_tfd = getattr(args,'include-tfd')
         filter_against_proteome = getattr(args,'include-filter-against-proteome')
+        redownload = args.redownload
+        remap = args.remap
+        if redownload:
+            remap = True
 
         parameters = {'disease_categories':diseases,
                    'abbreviations':abbreviations,
@@ -238,26 +270,28 @@ def preprocessing(args, debug=False):
                    'pathway_count_thresh':pathway_count_thresh,
                    'pathway_prop_thresh':pathway_prop_thresh,
                    'include_tfd':include_tfd,
-                   'filter_against_proteome':filter_against_proteome
+                   'filter_against_proteome':filter_against_proteome,
+                   'redownload':redownload,
+                   'remap':remap
                    }
 
 
 
     # save parameters as json in output folder
-    save_parameters(analysis_output_folder, parameters,debug=True)
-
+    save_parameters(analysis_output_folder, parameters, debug=True)
+    
     # Run the proprocessing module
     successful = prepare_knowledge_base_data(data_folder, mapping_folder, file_to_link_file,
                                              include_reactome=parameters['include_reactome'],
                                              include_tfd=parameters['include_tfd'],
-                                             redownload=False, remap=True, debug=debug)
+                                             redownload=parameters['redownload'],
+                                             remap=parameters['remap'], debug=debug)
 
     if successful:
         print("Knowledge base data successfully downloaded and mapped.")
     else:
         print("Problem with downloading knowledge base data!")
         sys.exit(1)
-
     # Run entity_set_expansion
     ent_parameters = {'go-term': parameters['cellular_components'],
                         'include_ppi': parameters['include_ppi'],
@@ -316,7 +350,7 @@ def impute_label(labels):
 
 
 def text_mining(args):
-    print("Textmining branch, still in development")
+    print("Textmining branch")
 
     # check if output folder is valid, otherwise create the folder
     output_folder = parse_output_folder(args.output_folder)
@@ -420,7 +454,14 @@ def prepare_kg(args):
         param_file_name = args.parameters
         parameters = parse_analyze_results(param_file_name)
     else:
-        caseolap_score_type = args.caseolap_scores
+    #    caseolap_score_type = args.caseolap_scores
+        caseolap_score_type = 'raw'
+        if args.use_z_score:
+            caseolap_score_type = 'z_score'
+        elif args.scale_z_score:
+            caseolap_score_type = 'scaled_z_score'
+    #prepare_knowledge_graph.add_argument('--caseolap_scores', default='z_score', choices=['raw','z_score','scaled_z_score'],
+        
         include_all_proteins = args.include_all_proteins
         include_mesh = getattr(args, 'include-mesh')
         include_ppi = getattr(args, 'include-ppi')
@@ -439,7 +480,7 @@ def prepare_kg(args):
     # prepare data folders
     data_folder = os.path.join(output_folder, 'data')
     mapping_folder = os.path.join(output_folder, 'parsed_mappings')
-    analysis_output_folder = os.path.join(output_folder, 'output')
+    analysis_output_folder = os.path.join(output_folder, 'result')
 
     # save parameters as json in output folder
     save_parameters(analysis_output_folder, parameters, debug=True)
@@ -556,7 +597,6 @@ def parse_preprocessing_parameters_file(file_name, valid_mesh_terms, valid_go_te
         y = json.dumps(x)
         return x
     else:
-        # TODO throw an error, tell user the parameter file is invalid. (completed??)
         raise Exception("The parameter file is invalid")
 
 
@@ -773,6 +813,10 @@ def args_parser():
                                help='Minimum number of subcellular component proteins required to consider a pathway as significant. Default:4')
     preprocessing.add_argument('-r', '--pathway_prop_thresh', type=float, required=False,
                                help='Minimum proportion of subcellular component proteins required to consider a pathway as significant. Default: 0.5')
+    preprocessing.add_argument('--redownload', action='store_true', required=False, default=False,
+                               help="Redownload knowledge base information")
+    preprocessing.add_argument('--remap', action='store_true', required=False, default=False,
+                               help="Re-calculate parsed mappings")
     add_bool_arg(preprocessing, 'include-tfd', default=False,
                  help='Include proteins with transcription factor dependence from GRNdb with entity set expansion')
     add_bool_arg(preprocessing, 'include-filter-against-proteome', default=True,
@@ -823,11 +867,16 @@ def args_parser():
                  help='Indicating the software to include Reactome pathway nodes and edges between proteins and pathways')
     add_bool_arg(prepare_knowledge_graph, 'include-mesh', default=True,
                  help='Indicating the software to include the MeSH disease hierarchy')
+    add_bool_arg(prepare_knowledge_graph, 'use_z_score', default=False,
+                 help='Indicating the software to include z-score scale CaseOLAP scores')
+    add_bool_arg(prepare_knowledge_graph, 'scale_z_score', default=True,
+                 help='Indicating the software to scale the z-score transformed CaseOLAP scores')
     # which caseolap scores to include
-    prepare_knowledge_graph.add_argument('--caseolap_scores', default='z_score', choices=['raw','z_score','scaled_z_score'],
-                                         help='Specifies which CaseOLAP scores to include in the knowledge graph. Raw scores (between 0.0 and 1.0), z-score per disease category (mean 0), or positive scaled z-scores (all scores > 0.0)')
+    #prepare_knowledge_graph.add_argument('--caseolap_scores', default='z_score', choices=['raw','z_score','scaled_z_score'],
+    #                                     help='Specifies which CaseOLAP scores to include in the knowledge graph. Raw scores (between 0.0 and 1.0), z-score per disease category (mean 0), or positive scaled z-scores (all scores > 0.0)')
     # mutual exclusive group on include_all_proteins
     kg_protein_group = prepare_knowledge_graph.add_mutually_exclusive_group(required=False)
+
     kg_protein_group.add_argument('--include_all_proteins', dest='include_all_proteins', action='store_true',
                                        help='Analyze CaseOLAP results from all functionally related proteins. Default: False')
     kg_protein_group.add_argument('--include_core_proteins', dest='include_all_proteins', action='store_false',

@@ -231,7 +231,7 @@ def get_proteins_from_go(go_ids, go_id_to_links, go2protein):
 
     # go through the hierarchy and get proteins
     if type(go_ids) == list:
-        go_queue = go_ids
+        go_queue = go_ids.copy()
     else:
         go_queue = [go_ids]
     extracted_proteins = set()
@@ -394,6 +394,11 @@ def prepare_subcellular_compartment_proteins(parameters,
     pw_proportion_thresh = parameters['pw_proportion_thresh']
     include_transcription_factor_dependence = parameters['include_transcription_factor_dependence']
     filter_against_proteome = parameters['filter_against_proteome']
+    
+    # make kg folder if not exist
+    kg_folder = os.path.join(output_folder,'kg')
+    if not os.path.exists(kg_folder):
+        os.makedirs(kg_folder)
 
     # load data
     resource_mapping_files = prepare_resource_mappings(include_ppi, include_pathways,
@@ -410,10 +415,10 @@ def prepare_subcellular_compartment_proteins(parameters,
     organelle_proteins = get_proteins_from_go(go_terms, go_id_to_links, go2protein)
     if filter_against_proteome:
         organelle_proteins = filter_proteins_against_proteome(organelle_proteins,proteome)
-
     print("%d proteins relevant to go term %s" % (len(organelle_proteins), go_terms))
     proteins_of_interest = set(organelle_proteins)
     if include_ppi:
+        print("Identifying protein-protein interactions")
         ppi_proteins = get_interacting_partners(organelle_proteins,
                                                 k=ppi_k,
                                                 score_thresh=ppi_score_thresh,
@@ -425,6 +430,7 @@ def prepare_subcellular_compartment_proteins(parameters,
 
         proteins_of_interest = proteins_of_interest.union(set(ppi_proteins))
     if include_pathways:
+        print("Identifying proteins with shared Reactome pathways")
         pathway2protein = resource_mappings['Reactome'][0]
         pathway_proteins = get_pathway_partners(organelle_proteins, pathway2protein,
                                                 count_thresh=pw_count_thresh,
@@ -436,6 +442,7 @@ def prepare_subcellular_compartment_proteins(parameters,
         print("%d proteins added with common pathways" % len(pathway_proteins))
         proteins_of_interest = proteins_of_interest.union(set(pathway_proteins))
     if include_transcription_factor_dependence:
+        print("Identifying protein with shared transcription factor dependence")
         gene_ids_2_protein_ids, protein_ids_2_gene_ids, gene_name_2_protein_id, \
             tf_gene_name_2_target_gene_name = resource_mappings['Transcription_Factor_Dependence']
         tfd_proteins = get_transcription_factor_dependence_partners(organelle_proteins,
