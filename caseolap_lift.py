@@ -133,6 +133,10 @@ def load_mesh_terms(output_folder,file_to_link_file,debug=False):
     input_file = os.path.join(data_folder, 'MeSH/mtrees2021.bin')
     file_exists = check_file((input_file))
     if not file_exists:
+        if not os.path.exists(data_folder):
+            os.makedirs(data_folder)
+        if not os.path.exists(os.path.join(data_folder,'MeSH')):
+            os.makedirs(os.path.join(data_folder,'MeSH'))
         ret = download_data({'MeSH':{'mtrees2021.bin':False}}, data_folder, file_to_link_file)
 
     # parse list of valid mesh terms
@@ -149,6 +153,10 @@ def load_go_terms(output_folder, file_to_link_file, debug=False):
     input_file = os.path.join(data_folder, 'GO/go-basic.obo')
     file_exists = check_file(input_file)
     if not file_exists:
+        if not os.path.exists(data_folder):
+            os.makedirs(data_folder)
+        if not os.path.exists(os.path.join(data_folder,'GO')):
+            os.makedirs(os.path.join(data_folder,'GO'))
         ret = download_data({'GO':{'go-basic.obo':False}}, data_folder, file_to_link_file)
 
     # parse list of valid go terms
@@ -724,6 +732,9 @@ def args_parser():
                    "preprocessing      Prepare diseases and proteins of interest\n"
                    "text_mining        Perform text mining analysis\n"
                    "kg_analysis        Analyze the knowledge graph help\n")
+    default_output_folder = '/caseolap_lift_shared_folder'
+    if not(os.path.exists(default_output_folder) and os.path.isdir(default_output_folder)):
+        default_output_folder = '.'
 
     # Create parser object
     parser = MyParser()
@@ -766,14 +777,12 @@ def args_parser():
                  help='Include proteins with transcription factor dependence from GRNdb with entity set expansion')
     add_bool_arg(preprocessing, 'include-filter-against-proteome', default=True,
                  help='Whether to filter UniProt IDs against the UniProt Human reference proteome.')
-    preprocessing.set_defaults(output_folder='.')
+    preprocessing.set_defaults(output_folder=default_output_folder)
     preprocessing.set_defaults(ppi_k=1)
     preprocessing.set_defaults(ppi_score_thresh=0.9)
     preprocessing.set_defaults(pathway_count_thresh=4)
     preprocessing.set_defaults(pathway_prop_thresh=0.5)
 
-    # Add text mining flags
-    # add default values here
     text_mining.add_argument('-d', '--date_range', type=str, required=False,
                              default=None, help='Specify the date range for PubMed documents which will be downloaded')
     add_bool_arg(text_mining, 'include-full-text', default=False, single_flag='-t',
@@ -788,7 +797,7 @@ def args_parser():
                              help='Directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps')
     text_mining.add_argument('-p', '--parameters', type=str, required=False,
                              help='Will bypass all options and run based on parameters.txt or parameters.json file')
-    text_mining.set_defaults(output_folder='.')
+    text_mining.set_defaults(output_folder=default_output_folder)
 
     analyze_results.add_argument('-z', '--z_score_thresh', type=float, required=False, default=3.0,
                                  help='The threshold to consider a protein as obtaining a significant score with respect to a disease category')
@@ -802,7 +811,7 @@ def args_parser():
                                  help='Directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps')
     analyze_results.add_argument('-p', '--parameters', type=str,
                                  help='Will bypass all options and run based on parameters.txt or parameters.json file')
-    analyze_results.set_defaults(output_folder='.')
+    analyze_results.set_defaults(output_folder=default_output_folder)
 
 
 
@@ -828,7 +837,7 @@ def args_parser():
                                          help='Directory where all data and results will be stored. Please make sure to use the same output folder for all steps, as future steps rely on files output from previous steps')
     prepare_knowledge_graph.add_argument('-p', '--parameters', type=str,
                                          help='Will bypass all options and run based on parameters.txt or parameters.json file')
-    prepare_knowledge_graph.set_defaults(output_folder='.')
+    prepare_knowledge_graph.set_defaults(output_folder=default_output_folder)
 
     return parser
 
