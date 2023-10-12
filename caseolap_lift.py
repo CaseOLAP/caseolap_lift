@@ -6,6 +6,7 @@ import requests
 from pathlib import Path
 from preprocessing.prepare_knowledge_base_data import  download_data,prepare_knowledge_base_data
 import json
+import shutil
 from preprocessing.entity_set_expansion import prepare_subcellular_compartment_proteins
 from text_mining import *
 from analysis.run_analyse_results import analyze_results
@@ -127,13 +128,13 @@ def load_mesh_terms(output_folder,file_to_link_file,debug=False):
 
     if debug:
         print("Importing list of valid MeSH terms")
-
-    # Check if mtrees file exists, otherwise download
     data_folder = os.path.join(output_folder,"data")
-    input_file = os.path.join(data_folder, 'MeSH/mtrees2021.bin')
+    
+    # Check if mtrees file exists, otherwise download
+    input_file = os.path.join(data_folder, 'MeSH/mtrees2023.bin') # TODO do not hard code
     file_exists = check_file((input_file))
     if not file_exists:
-        ret = download_data({'MeSH':{'mtrees2021.bin':False}}, data_folder, file_to_link_file)
+        ret = download_data({'MeSH':{'mtrees2023.bin':False}}, data_folder, file_to_link_file)
 
     # parse list of valid mesh terms
     valid_mesh_terms = set([l.strip("\n").split(";")[1] for l in open(input_file,"r").readlines()])
@@ -159,11 +160,30 @@ def load_go_terms(output_folder, file_to_link_file, debug=False):
 
 
 def save_parameters(output_folder, parameters,debug=False):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
     output_file = os.path.join(output_folder,"parameters.json")
     json.dump(parameters, open(output_file, 'w'))
     if debug:
         print("Saved parameters as %s"%output_file)
 
+
+def copy_folder(input_folder, output_folder):
+
+    # create the output folder if it doesn't exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # copy all items in input folder
+    for item in os.listdir(input_folder):
+        item_path = os.path.join(input_folder, item)
+        # copy if it is a file
+        if os.path.isfile(item_path):
+            shutil.copy(item_path,output_folder)
+        # recursive copy if subfolder
+        elif os.path.isdir(item_path):
+            subfolder_output = os.path.join(output_folder, item)
+            copy_folder(item_path, subfolder_output)
 
 def preprocessing(args, debug=False):
 
@@ -177,6 +197,14 @@ def preprocessing(args, debug=False):
     analysis_output_folder = os.path.join(output_folder,'output')
     config_folder = os.path.join(output_folder,'config')
     file_to_link_file = os.path.join(config_folder,'knowledge_base_links.json')
+    # make directories if not exist
+    for d in [data_folder, mapping_folder, analysis_output_folder]:
+        if not os.path.exists(d):
+            os.makedirs(d)
+    if not os.path.exists(config_folder):
+        original_config = '/workspace/caseolap_lift/config'
+        copy_folder(original_config, config_folder)
+
 
     # import list of valid mesh and go terms to check user input against
     valid_mesh_terms = load_mesh_terms(output_folder,file_to_link_file, debug=debug)
@@ -217,6 +245,10 @@ def preprocessing(args, debug=False):
         pathway_prop_thresh = args.pathway_prop_thresh
         include_tfd = getattr(args,'include-tfd')
         filter_against_proteome = getattr(args,'include-filter-against-proteome')
+        redownload = args.redownload
+        remap = args.remap
+        if redownload:
+            remap = True
 
         parameters = {'disease_categories':diseases,
                    'abbreviations':abbreviations,
@@ -230,26 +262,28 @@ def preprocessing(args, debug=False):
                    'pathway_count_thresh':pathway_count_thresh,
                    'pathway_prop_thresh':pathway_prop_thresh,
                    'include_tfd':include_tfd,
-                   'filter_against_proteome':filter_against_proteome
+                   'filter_against_proteome':filter_against_proteome,
+                   'redownload':redownload,
+                   'remap':remap
                    }
 
 
 
     # save parameters as json in output folder
-    save_parameters(analysis_output_folder, parameters,debug=True)
-
+    save_parameters(analysis_output_folder, parameters, debug=True)
+    
     # Run the proprocessing module
     successful = prepare_knowledge_base_data(data_folder, mapping_folder, file_to_link_file,
                                              include_reactome=parameters['include_reactome'],
                                              include_tfd=parameters['include_tfd'],
-                                             redownload=False, remap=True, debug=debug)
+                                             redownload=parameters['redownload'],
+                                             remap=parameters['remap'], debug=debug)
 
     if successful:
         print("Knowledge base data successfully downloaded and mapped.")
     else:
         print("Problem with downloading knowledge base data!")
         sys.exit(1)
-
     # Run entity_set_expansion
     ent_parameters = {'go-term': parameters['cellular_components'],
                         'include_ppi': parameters['include_ppi'],
@@ -308,7 +342,7 @@ def impute_label(labels):
 
 
 def text_mining(args):
-    print("Textmining branch, still in development")
+    print("Textmining branch")
 
     # check if output folder is valid, otherwise create the folder
     output_folder = parse_output_folder(args.output_folder)
@@ -762,6 +796,10 @@ def args_parser():
                                help='Minimum number of subcellular component proteins required to consider a pathway as significant. Default:4')
     preprocessing.add_argument('-r', '--pathway_prop_thresh', type=float, required=False,
                                help='Minimum proportion of subcellular component proteins required to consider a pathway as significant. Default: 0.5')
+    preprocessing.add_argument('--redownload', action='store_true', required=False, default=False,
+                               help="Redownload knowledge base information")
+    preprocessing.add_argument('--remap', action='store_true', required=False, default=False,
+                               help="Re-calculate parsed mappings")
     add_bool_arg(preprocessing, 'include-tfd', default=False,
                  help='Include proteins with transcription factor dependence from GRNdb with entity set expansion')
     add_bool_arg(preprocessing, 'include-filter-against-proteome', default=True,
