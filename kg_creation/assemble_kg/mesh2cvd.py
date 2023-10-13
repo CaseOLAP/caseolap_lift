@@ -13,7 +13,7 @@ def parse_mesh_tree(mesh_tree_file):
     mesh_term_to_code = {a:b for a,b in [l.split(";") for l in lines]}
     return mesh_term_to_code
     
-def mesh2triples(mesh_tree_to_id_file, mesh_tree_file, cvd_to_mesh_term_file, include_MeSH: bool):
+def mesh2triples(mesh_tree_to_id_file, mesh_tree_file, disease_to_mesh, include_MeSH: bool):
     # reformat data into the following
     data = {h:[] for h in ['head','relation','tail','edge_type','weight']}
 
@@ -31,14 +31,10 @@ def mesh2triples(mesh_tree_to_id_file, mesh_tree_file, cvd_to_mesh_term_file, in
     tail_mesh_tree_to_id_df = [str(i) for i in mesh_tree_to_id_df['Disease (MeSH)'].to_list()]
     relation_mesh_tree_to_id_df = ['MeSH_is' for i in tail_mesh_tree_to_id_df]
 
-    # head and tail for cvd -- mesh term mapping
-    cvd_to_mesh_lines = [l.strip("\n") for l in open(cvd_to_mesh_term_file,"r").readlines()]
-    cvd_to_mesh = {c:m.split(" ") for c,m in zip(['CM','ARR','CHD','VD','IHD','CCD','VOO','OTH'],cvd_to_mesh_lines)}
-
     head_cvd_mesh = []
     tail_cvd_mesh = []
     #iterate over dict
-    for cvd, mesh_terms in cvd_to_mesh.items():
+    for cvd, mesh_terms in disease_to_mesh.items():
         for m in mesh_terms:
             mesh = "MeSH_Tree_Disease:" + str(m)
             head_cvd_mesh.append(cvd)

@@ -4,6 +4,7 @@ import shutil
 import argparse
 import time
 import warnings
+import json
 warnings.filterwarnings("ignore")
 
 #data handling
@@ -61,9 +62,9 @@ class caseolapLIFT_knowledge_graph:
         #REQUIRED FILES
 
         #mesh (downloaded from irsyad-setup.py)
-        mesh_tree_file = os.path.join(root_directory, "data/MeSH/mtrees2022.bin")
+        mesh_tree_file = os.path.join(root_directory, "data/MeSH/mtrees2023.bin") #TODO match non-exact name
         # categories_file = os.path.join(root_directory,"caseolap/input/categories.txt")
-        categories_file = os.path.join(root_directory, "data/categories.txt")
+        categories_file = os.path.join(root_directory, "output/categories.txt")
 
         mesh_tree_to_mesh_id_file = os.path.join(root_directory, "parsed_mappings/MeSH/edges_meshtree-IS-meshid_disease.csv")
         edges_meshtree2meshtree_hierarchy = os.path.join(root_directory, "parsed_mappings/MeSH/edges_meshtree_to_meshtree.csv")
@@ -149,9 +150,10 @@ class caseolapLIFT_knowledge_graph:
         print("\nassembling mesh--cvd relation...", end = " ")
         mesh_term_to_code = parse_mesh_tree(mesh_tree_file)
         
+        diseases_to_mesh = json.loads(open(categories_file,'r').read())
 
         #includes mesh tree, also conencted with the 8 cvd categories
-        mesh_kg = mesh2triples(mesh_tree_to_mesh_id_file, edges_meshtree2meshtree_hierarchy,categories_file, include_MeSH)
+        mesh_kg = mesh2triples(mesh_tree_to_mesh_id_file, edges_meshtree2meshtree_hierarchy,diseases_to_mesh, include_MeSH)
         if include_MeSH:
             print("success (MeSH hierarchy included)")
         else:
@@ -201,7 +203,7 @@ class caseolapLIFT_knowledge_graph:
         print("done")
 
         print("\n-----------------------------------------------\n")
-        print("ready to initialize GRAPE knowledge graph\n")
+        print("ready to initialize knowledge graph\n")
 
     @staticmethod
     def knowledge_graph():

@@ -82,7 +82,7 @@ def run_text_mining(root_dir, data_folder, mapping_folder, analysis_output_folde
     # Names of the index you want to create 05
 
     # Input data 06
-    meshtree = os.path.join(data_folder,'MeSH/mtrees2021.bin')                 # MeSH Tree ontology
+    meshtree = os.path.join(data_folder,'MeSH/mtrees2023.bin')                 # MeSH Tree ontology TODO hardcoded
     root_cat = os.path.join(data_folder,'categories.txt')                 # Categories' root MeSH Tree nums
     textcube_config = os.path.join(config_dir,'textcube_config.json')   # ['CategoryName1',...]
     mesh2pmid = mesh2pmid_outputfile # from step 2

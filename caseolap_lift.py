@@ -309,6 +309,10 @@ def preprocessing(args, debug=False):
                                              output_folder=analysis_output_folder, debug=False)
 
     print("Done with preprocessing module.")
+    categories = {k:v for k,v in zip(abbreviations,diseases)}
+    with open(os.path.join(analysis_output_folder,'categories.txt'),'w') as file:
+        file.write(json.dumps(categories,indent=4))
+
     return True
 
 
