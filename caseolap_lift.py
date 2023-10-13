@@ -305,6 +305,7 @@ def preprocessing(args, debug=False):
                       }
     prepare_subcellular_compartment_proteins(ent_parameters,
                                              mapping_folder=mapping_folder,
+                                             data_folder=data_folder,
                                              output_folder=analysis_output_folder, debug=False)
 
     print("Done with preprocessing module.")

@@ -371,8 +371,10 @@ def extract_proteins_from_fasta(fasta_file):
     return proteins
 
 
-def load_proteome():
-    proteome_file = './data/Transcription_Factor_Dependence/UP000005640_9606.fasta'
+def load_proteome(proteome_file):
+    if not os.path.exists(proteome_file):
+        print("Protome file missing! %s"%proteome_file)
+        return
     return extract_proteins_from_fasta(proteome_file)
 
 
@@ -383,6 +385,7 @@ def filter_proteins_against_proteome(proteins, proteome):
 def prepare_subcellular_compartment_proteins(parameters,
                                              output_folder="../output",
                                              mapping_folder='../parsed_mappings',
+                                             data_folder='../data/',
                                              debug=False):
     # parse parameters
     go_terms = parameters['go-term']
@@ -409,7 +412,9 @@ def prepare_subcellular_compartment_proteins(parameters,
 
     # filter proteome
     if filter_against_proteome:
-        proteome = load_proteome()
+
+        proteome_file = os.path.join(data_folder,'Transcription_Factor_Dependence/UP000005640_9606.fasta')
+        proteome = load_proteome(proteome_file)
 
     # Get organelle-specific proteins
     organelle_proteins = get_proteins_from_go(go_terms, go_id_to_links, go2protein)

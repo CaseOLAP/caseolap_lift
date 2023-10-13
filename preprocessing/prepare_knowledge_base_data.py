@@ -316,7 +316,8 @@ def download_data(resource_to_data_file_bool, data_folder, file_to_link_file):
                     if not os.path.exists(data_file_path):
                         os.makedirs(data_file_path)
                     for download_link in file_to_link[data_file]:
-                        local_file_name = download_file(download_link,data_file_path)
+                        wget_file(download_link,data_file_path)
+                        #local_file_name = download_file(download_link,data_file_path)
                 # download file
                 elif data_file in file_to_link:
                     download_link = file_to_link[data_file]
@@ -332,6 +333,9 @@ def download_data(resource_to_data_file_bool, data_folder, file_to_link_file):
                 resource_to_data_file_bool[resource][data_file] = os.path.exists(data_file_path)
     return resource_to_data_file_bool
 
+
+def wget_file(url,destination):
+    os.system(f'wget -N -P {destination} {url}')
 
 def get_short_full_names(names, section_key, section_values):
     '''
