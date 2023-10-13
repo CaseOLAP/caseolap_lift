@@ -364,13 +364,12 @@ def run_pathway_analysis(summary_table, cvds,
     z_data.index = [pathway_id_to_pathway_name[p] for p in z_data.index]
     z_data = z_data[cvds]
     # dend_data = linkage_matrix
-    linkage_matrix, dendrogram_order =construct_dendrogram(my_G,pathways_in_heatmap, labeling_function=root_pathway_familiar_relations)
-    heatmap_outfile = os.path.join(output_directory,"output/figures/CVD_Reactome_coverage_heatmap_no_dendrogram.pdf")
+    figure_directory = os.path.join(output_directory,'figures')
+    linkage_matrix, dendrogram_order = construct_dendrogram(my_G,pathways_in_heatmap, labeling_function=root_pathway_familiar_relations)
+    heatmap_outfile = os.path.join(figure_directory,"CVD_Reactome_coverage_heatmap_no_dendrogram.pdf")
     reordered_c_data = reorder_heatmap(c_data,dendrogram_order,pathway_id_to_pathway_name,reactome_pathway_to_unique_proteins)
     reordered_z_data = reorder_heatmap(z_data,dendrogram_order,pathway_id_to_pathway_name,reactome_pathway_to_unique_proteins)
-    make_heatmap(reordered_z_data, linkage_matrix, v_lim=(None, None))
-
-
+    make_heatmap(reordered_z_data, linkage_matrix, v_lim=(None, None), out_file=heatmap_outfile)
 
     ### Heatmap unique to CVDs
 
@@ -388,8 +387,7 @@ def run_pathway_analysis(summary_table, cvds,
         for pp in p:
             pathway_names += [pathway_id_to_pathway_name[pp]]
         print(pathway_names)
-
-    pathway_unique_to_cvd_heatmap_outfile = os.path.join(output_directory,"output/figures/pathways_unique_to_cvd_heatmap.pdf")
+    pathway_unique_to_cvd_heatmap_outfile = os.path.join(figure_directory,"pathways_unique_to_cvd_heatmap.pdf")
     make_heatmap_unique_to_cvd(unique_to_cvd_pathway_list, zscores_df,
                                all_union_pa_df, uniprot_to_uniprot, cvds,
                                pathway_id_to_pathway_name, reactome_pathway_to_unique_proteins)
@@ -660,7 +658,6 @@ def analyze_results(root_directory, z_score_thresh=3.0, merge_proteins=True, use
     print("### Root Pathway Descendants ###")
     descendants = get_descendant_pathways(root_nodes, G)
     root_pathway_familiar_relations = get_familiar_relations(descendants)
-
     # Prune graph based on membership to root pathway
     pruned_G_root_pathways = prune_extra_edges(G,
                                                labeling_function=root_pathway_familiar_relations,

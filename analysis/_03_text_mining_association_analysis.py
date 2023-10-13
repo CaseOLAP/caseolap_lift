@@ -753,10 +753,11 @@ def extract_pathway_to_scores(pathways_to_extract, uniref_to_score_df,
     pathway_to_proteins = {}
     for pathway in pathways_to_extract:
         sub_df = reactome_results_df[reactome_results_df['Pathway identifier'] == pathway]
-        temp1 = list(sub_df['Submitted entities found'])[0].split(";")
-#         temp2 = list(sub_df['Mapped entities'])[0].split(";")
-        pathway_to_proteins[pathway] = temp1
-
+        if sub_df.shape[0] > 0:
+            temp1 = list(sub_df['Submitted entities found'])[0].split(";")
+            pathway_to_proteins[pathway] = temp1
+        else:
+            pathway_to_proteins[pathway] = []
     # step 2: get matching unirefs in each pathway
     pathway_to_unirefs = {}
     for pathway in pathways_to_extract:
@@ -1157,7 +1158,7 @@ def make_heatmap_unique_to_cvd(unique_to_cvd_pathway_list, zscores_df,
     pathways = []
     # cvds = unique_to_cvd_pathway_list.keys()
     for cvd in cvds:
-        if cvd in unique_to_pathway_list:
+        if cvd in unique_to_cvd_pathway_list:
             pathway_list = unique_to_cvd_pathway_list[cvd]
             for pathway in pathway_list:
                 pathways+=[pathway]
@@ -1593,11 +1594,15 @@ dendrogram.
 
 
 def construct_dendrogram(G, node_list, labeling_function=None, debug=False):
-    # prune the graph into a tree
-    pruned_G = prune_extra_edges(G, labeling_function=labeling_function)
 
-    # extract only relevant nodes from graph
-    sub_G, leaves = construct_hierarchy_subgraph(pruned_G, node_list)
+    if not nx.is_tree(G):
+        # prune the graph into a tree
+        pruned_G = prune_extra_edges(G, labeling_function=labeling_function)
+
+        # extract only relevant nodes from graph
+        sub_G, leaves = construct_hierarchy_subgraph(pruned_G, node_list)
+    else:
+        sub_G, leaves = construct_hierarchy_subgraph(G, node_list)
 
     nodes = sub_G.nodes()
     inner_nodes = [n for n in nodes if sub_G.out_degree(n) > 0]
